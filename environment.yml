@@ -1,0 +1,23 @@
+# install with conda env create -f environment.yml 
+name: environment_galia
+channels:
+  - conda-forge
+  - defaults
+  - pytorch
+dependencies:
+  - python
+  - ipykernel
+  - ipywidgets
+  - pandas
+  - matplotlib
+  - plotly
+  - jupyter-dash
+  - scikit-learn
+  - torchvision
+  - torchaudio
+  - pytorch
+  - autograd
+  - pip
+  - pip:
+    - torch-summary
+
