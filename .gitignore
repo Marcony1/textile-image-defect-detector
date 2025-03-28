@@ -176,3 +176,6 @@ cython_debug/
 
 # Image Privacy protection
 data
+
+# Large models
+*.pt
