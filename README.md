@@ -25,7 +25,7 @@ data/raw/NO_OK/
 Install required libraries:
 
 ```bash
-pip install tensorflow pillow numpy scikit-learn
+pip install pillow numpy scikit-learn
 ```
 
 3. Run the Script
