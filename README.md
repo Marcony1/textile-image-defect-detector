@@ -71,3 +71,7 @@ Use these paths in your model training:
 train_dir = "data/split/train"
 test_dir = "data/split/test"
 ```
+
+### Label Studio Used Credentials
+User: marcop.bravom@gmail.com
+Password: galiatextil
