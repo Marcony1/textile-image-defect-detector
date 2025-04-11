@@ -84,4 +84,4 @@ The `scripts/02_unzipper.py` script automatically extracts zip files into organi
 
 ### 🚀 Basic Usage
 ```bash
-python scripts/unzip_data.py path/to/yourfile.zip
+python scripts/02_unzipper.py path/to/yourfile.zip
