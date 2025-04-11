@@ -75,3 +75,13 @@ test_dir = "data/split/test"
 ### Label Studio Used Credentials
 User: marcop.bravom@gmail.com
 Password: galiatextil
+
+### Alternative Instructions
+
+## 📦 Data Extraction Utility
+
+The `scripts/02_unzipper.py` script automatically extracts zip files into organized subdirectories.
+
+### 🚀 Basic Usage
+```bash
+python scripts/unzip_data.py path/to/yourfile.zip
