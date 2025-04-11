@@ -1,14 +1,15 @@
-#!/usr/bin/env python3
 import os
 import json
 import random
 import shutil
+import numpy as np
 from pathlib import Path
+from collections import Counter
 from sklearn.model_selection import train_test_split
 
-def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.7, 0.1, 0.2), seed=42):
+def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.6, 0.1, 0.2), seed=42):
     """
-    Splits YOLO dataset into train/val/test while preserving class distribution
+    Splits YOLO dataset into train/val/test with fallback for rare classes
     
     Args:
         input_dir: Path to input folder (e.g., 'data/01_annotated_data')
@@ -35,17 +36,11 @@ def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.7, 0.1, 0.2), see
     with open(classes_file) as f:
         classes = [line.strip() for line in f.readlines()]
     
-    # Read notes.json if exists
-    metadata = {}
-    if (input_path / "notes.json").exists():
-        with open(input_path / "notes.json") as f:
-            metadata = json.load(f)
-    
     # Get all image files
     image_files = list((input_path / "images").glob("*"))
     image_files = [f for f in image_files if f.suffix.lower() in ['.jpg', '.png', '.jpeg']]
     
-    # Create stratified split (multi-label aware)
+    # Create multi-label compatible split
     def get_image_classes(img_path):
         txt_path = input_path / "labels" / f"{img_path.stem}.txt"
         if not txt_path.exists():
@@ -54,28 +49,52 @@ def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.7, 0.1, 0.2), see
             lines = f.readlines()
         return list(set(int(line.split()[0]) for line in lines if line.strip()))
     
-    # First split: train vs temp (val+test)
-    train_ratio, val_ratio, test_ratio = ratios
-    temp_ratio = val_ratio + test_ratio
+    # Create binary matrix and track class counts
+    class_matrix = []
+    class_counts = Counter()
     
-    X = image_files
-    y = [get_image_classes(img) for img in X]
+    for img_path in image_files:
+        class_indices = get_image_classes(img_path)
+        binary_vec = [1 if i in class_indices else 0 for i in range(len(classes))]
+        class_matrix.append(binary_vec)
+        for cls in class_indices:
+            class_counts[cls] += 1
     
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y, 
-        test_size=temp_ratio,
-        random_state=seed,
-        stratify=y
-    )
+    class_matrix = np.array(class_matrix)
+    X = np.array(image_files)
     
-    # Split temp into val and test
-    val_test_ratio = val_ratio / temp_ratio
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp,
-        test_size=1-val_test_ratio,
-        random_state=seed,
-        stratify=y_temp
-    )
+    # Identify rare classes (appearing in <2 images)
+    rare_classes = [cls for cls, count in class_counts.items() if count < 2]
+    
+    try:
+        # Attempt stratified splitting
+        X_train, X_temp = train_test_split(
+            X,
+            test_size=ratios[1] + ratios[2],
+            random_state=seed,
+            stratify=class_matrix
+        )
+        temp_matrix = class_matrix[np.isin(X, X_temp)]
+        X_val, X_test = train_test_split(
+            X_temp,
+            test_size=ratios[2]/(ratios[1]+ratios[2]),
+            random_state=seed,
+            stratify=temp_matrix
+        )
+    except ValueError as e:
+        print(f"\n⚠️ Stratified split failed: {e}")
+        print("Falling back to random split without stratification...\n")
+        X_train, X_temp = train_test_split(
+            X,
+            test_size=ratios[1] + ratios[2],
+            random_state=seed
+        )
+        X_val, X_test = train_test_split(
+            X_temp,
+            test_size=ratios[2]/(ratios[1]+ratios[2]),
+            random_state=seed
+        )
+
     
     # Create output directory structure
     splits = {
@@ -91,31 +110,28 @@ def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.7, 0.1, 0.2), see
         
         # Copy files
         for img_path in split_files:
-            # Copy image
             shutil.copy(img_path, output_path / split_name / 'images' / img_path.name)
-            
-            # Copy corresponding label
             label_path = input_path / "labels" / f"{img_path.stem}.txt"
             if label_path.exists():
                 shutil.copy(label_path, output_path / split_name / 'labels' / label_path.name)
         
-        # Copy classes.txt to each split
         shutil.copy(classes_file, output_path / split_name / 'classes.txt')
-        
-        # Copy notes.json if exists
-        if metadata:
-            with open(output_path / split_name / 'notes.json', 'w') as f:
-                json.dump(metadata, f)
+        if (input_path / "notes.json").exists():
+            shutil.copy(input_path / "notes.json", output_path / split_name / 'notes.json')
     
-    print(f"""
-    Dataset split complete!
-    - Input: {input_path}
-    - Output: {output_path}
-    - Train: {len(X_train)} images
-    - Val: {len(X_val)} images
-    - Test: {len(X_test)} images
-    - Classes: {len(classes)} ({', '.join(classes[:3])}{'...' if len(classes) > 3 else ''})
-    """)
+    # Print summary
+    print(f"\nDataset split complete!")
+    print(f"- Input: {input_path}")
+    print(f"- Output: {output_path}")
+    print(f"- Train: {len(X_train)} images")
+    print(f"- Val: {len(X_val)} images")
+    print(f"- Test: {len(X_test)} images")
+    print(f"- Classes: {len(classes)}")
+    
+    if rare_classes:
+        print(f"\nWarning: Used fallback splitting for rare classes:")
+        for cls in rare_classes:
+            print(f"  - {classes[cls]} (appears in {class_counts[cls]} images)")
 
 if __name__ == "__main__":
     import argparse
