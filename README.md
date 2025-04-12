@@ -85,3 +85,54 @@ The `scripts/02_unzipper.py` script automatically extracts zip files into organi
 ### 🚀 Basic Usage
 ```bash
 python scripts/02_unzipper.py path/to/yourfile.zip
+```
+📋 Examples
+#### Extract from project's data directory
+python scripts/unzip_data.py data/raw_measurements.zip
+
+#### Extract from anywhere in your system
+python scripts/unzip_data.py ~/downloads/archive.zip
+
+### 🔄 Expected Behavior
+```bash
+Extracting survey_data.zip to ./survey_data
+Successfully extracted to ./survey_data
+```
+
+## 🧩 YOLO Dataset Splitter (Stratified & Optional Test Set)
+Split your YOLOv5/YOLOv8 dataset into train/valid/test folders with multilabel stratification support and automatic data.yaml creation.
+
+### 📦 Folder Input Format:
+```pgsql
+dataset/
+├── images/
+├── labels/
+├── classes.txt
+```
+
+### 🖥️ Usage
+```bash
+python scripts/03_data_splitter.py \
+  --input data/01_annotated_data \
+  --ratios 0.7 0.2 0.1 \
+  --seed 42 \
+  --stratify True
+```
+
+### 🧾 Output Structure
+```pgsql
+01_annotated_data_splitted/
+├── train/
+├── valid/
+├── test/              ← Only if --ratios include test > 0
+└── data.yaml          ← YOLO-compatible
+```
+
+### 📁 data.yaml Example
+```yaml
+train: train/images
+val: valid/images
+test: test/images        # only if test ratio was provided
+nc: 5
+names: ['cat', 'dog', 'car', 'tree', 'person']
+```
