@@ -161,6 +161,8 @@ import numpy as np
 from pathlib import Path
 from collections import Counter
 from sklearn.model_selection import train_test_split
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
+
 
 def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.8, 0.2), seed=42):
     """
@@ -218,21 +220,35 @@ def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.8, 0.2), seed=42)
 
     rare_classes = [cls for cls, count in class_counts.items() if count < 2]
 
+    # try:
+    #     X_train, X_val = train_test_split(
+    #         X,
+    #         test_size=ratios[1],
+    #         random_state=seed,
+    #         stratify=class_matrix
+    #     )
+    # except ValueError as e:
+    #     print(f"\n⚠️ Stratified split failed: {e}")
+    #     print("Falling back to random split without stratification...\n")
+    #     X_train, X_val = train_test_split(
+    #         X,
+    #         test_size=ratios[1],
+    #         random_state=seed
+    #     )
+
     try:
-        X_train, X_val = train_test_split(
-            X,
-            test_size=ratios[1],
-            random_state=seed,
-            stratify=class_matrix
-        )
-    except ValueError as e:
-        print(f"\n⚠️ Stratified split failed: {e}")
+        msss = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=ratios[1], random_state=seed)
+        train_idx, val_idx = next(msss.split(X, class_matrix))
+        X_train, X_val = X[train_idx], X[val_idx]
+    except Exception as e:
+        print(f"\n⚠️ Iterative stratification failed: {e}")
         print("Falling back to random split without stratification...\n")
         X_train, X_val = train_test_split(
             X,
             test_size=ratios[1],
             random_state=seed
         )
+
 
     # Create output directory structure
     splits = {
@@ -265,6 +281,24 @@ def split_yolo_dataset(input_dir, output_parent_dir, ratios=(0.8, 0.2), seed=42)
         print(f"\n⚠️ Warning: Fallback splitting used for rare classes:")
         for cls in rare_classes:
             print(f"  - {classes[cls]} (appears in {class_counts[cls]} images)")
+
+    # Print class balance stats
+    def count_class_distribution(split_files, input_path, num_classes):
+        counts = np.zeros(num_classes)
+        for img_path in split_files:
+            txt_path = input_path / "labels" / f"{img_path.stem}.txt"
+            if not txt_path.exists():
+                continue
+            with open(txt_path) as f:
+                for line in f:
+                    if line.strip():
+                        class_id = int(line.split()[0])
+                        counts[class_id] += 1
+        return counts
+
+    print("\n📊 Class distribution:")
+    print("Train:", count_class_distribution(X_train, input_path, len(classes)))
+    print("Val  :", count_class_distribution(X_val, input_path, len(classes)))
 
 if __name__ == "__main__":
     import argparse
