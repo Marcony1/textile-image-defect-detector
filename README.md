@@ -72,11 +72,15 @@ train_dir = "data/split/train"
 test_dir = "data/split/test"
 ```
 
-### Label Studio Used Credentials
+# 📦 Data Preparation
+[`Label Studio`](https://labelstud.io/) was used to annotate the images. After annotating them, they were exported in YOLO format.
+A zip file can then be downloaded and moved to the `data` folder. From there, the following steps can be followed.
+
+## Label Studio Used Credentials
 User: marcop.bravom@gmail.com
 Password: galiatextil
 
-### Alternative Instructions
+## Alternative Instructions
 
 ## 📦 Data Extraction Utility
 
