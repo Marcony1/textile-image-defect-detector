@@ -178,4 +178,4 @@ cython_debug/
 data
 
 # Large models
-*.pt
+models/
