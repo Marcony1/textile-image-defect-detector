@@ -15,7 +15,7 @@ def create_data_yaml(output_dir, names, include_test=False):
     data = {
         'train': 'train/images',
         'val': 'valid/images',
-        'test': '# test images (optional)',
+        # 'test': '# test images (optional)',
         'nc': len(names),
         'names': names
     }
