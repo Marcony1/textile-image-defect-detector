@@ -179,3 +179,6 @@ data
 
 # Large models
 models/
+
+# Pesos intermedios de entrenamiento
+runs/**/last.pt

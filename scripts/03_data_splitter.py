@@ -145,8 +145,9 @@ if __name__ == "__main__":
                         help='Ratios for train, valid, test (must sum to ≤ 1.0)')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
-    parser.add_argument('--stratify', type=bool, default=True,
-                        help='Use multilabel stratified sampling (default=True)')
+    # type=bool would turn the string "False" into True; parse it explicitly.
+    parser.add_argument('--stratify', type=lambda s: s.strip().lower() in ('1', 'true', 'yes', 'si', 'sí'),
+                        default=True, help='Use multilabel stratified sampling: True/False (default=True)')
 
     args = parser.parse_args()
 
