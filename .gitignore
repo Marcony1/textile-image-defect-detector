@@ -182,3 +182,6 @@ models/
 
 # Pesos intermedios de entrenamiento
 runs/**/last.pt
+
+# Datos de producción (fotos, base de datos)
+produccion/

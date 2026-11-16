@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inspección de toallas · en vivo</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e2e1dc;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #8a8984;
+  --grid: #e8e7e3;
+  --good: #0ca30c;
+  --critical: #d03b3b;
+  --warning: #fab219;
+  --info: #2a78d6;
+  --good-bg: #e7f6e7;
+  --critical-bg: #fbeaea;
+  --warning-bg: #fff5de;
+  --info-bg: #e8f1fc;
+  --shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
+    --text: #f0efec; --text-2: #c3c2b7; --text-3: #8a8984; --grid: #2a2a27;
+    --info: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
+  --text: #f0efec; --text-2: #c3c2b7; --text-3: #8a8984; --grid: #2a2a27;
+  --info: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1600px; margin: 0 auto; padding: 16px clamp(16px, 2vw, 28px) 32px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 14px; }
+header h1 { font-size: 20px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+header .sub { color: var(--text-2); font-size: 13px; }
+.spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.dot.on { background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); }
+.dot.off { background: var(--critical); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, button, .btn { font: inherit; font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; text-decoration: none; }
+button:hover, .btn:hover { background: var(--surface-2); }
+button:focus-visible, select:focus-visible, .btn:focus-visible, .row:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.clock { font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 13px; }
+
+.alerts { display: grid; gap: 8px; margin-bottom: 14px; }
+.alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+.alert .ic { font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; font-size: 13px; }
+.alert.critical { background: var(--critical-bg); border-color: transparent; } .alert.critical .ic { background: var(--critical); }
+.alert.warning { background: var(--warning-bg); border-color: transparent; } .alert.warning .ic { background: var(--warning); color: #0b0b0b; }
+.alert.info { background: var(--info-bg); border-color: transparent; } .alert.info .ic { background: var(--info); }
+.alert b { display: block; }
+.alert span { color: var(--text-2); font-size: 13px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+.kpi .lab { color: var(--text-2); font-size: 12.5px; }
+.kpi .val { font-size: 30px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
+.kpi .val small { font-size: 15px; font-weight: 500; color: var(--text-2); margin-left: 4px; }
+.kpi .note { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+.kpi.bad .val { color: var(--critical); }
+
+.grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
+.grid2 { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); margin-top: 14px; }
+@media (max-width: 1100px) { .grid, .grid2 { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
+.card h2 { font-size: 14px; margin: 0 0 10px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card h2 .muted { font-weight: 400; color: var(--text-3); font-size: 12.5px; }
+
+.latest .imgbox { position: relative; background: var(--surface-2); border-radius: 8px; overflow: hidden; aspect-ratio: 5 / 3; display: grid; place-items: center; }
+.latest img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.latest .empty { color: var(--text-3); padding: 40px; text-align: center; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 8px; padding: 6px 12px; font-size: 18px; color: #fff; }
+.badge.ok { background: var(--good); } .badge.nook { background: var(--critical); } .badge.err { background: var(--text-3); }
+.latest .over { position: absolute; left: 12px; top: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--text-2); font-size: 13px; align-items: center; }
+.meta b { color: var(--text); font-weight: 600; }
+.gauge { position: relative; height: 8px; background: var(--surface-2); border-radius: 4px; width: 160px; display: inline-block; vertical-align: middle; }
+.gauge i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.gauge u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 12.5px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; color: var(--text-2); }
+.review { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+.review .q { color: var(--text-2); font-size: 13px; margin-right: 4px; }
+.review button.sel { border-color: var(--text); font-weight: 600; }
+.kbd { font-size: 11px; color: var(--text-3); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.follow { margin-left: auto; }
+
+.list { max-height: 620px; overflow-y: auto; margin: 0 -6px; }
+.row { display: grid; grid-template-columns: 22px 54px 1fr auto; gap: 8px; align-items: center; padding: 7px 6px; border-radius: 8px; cursor: pointer; }
+.row:hover { background: var(--surface-2); }
+.row.active { background: var(--info-bg); }
+.row .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; }
+.row .ic.ok { background: var(--good); } .row .ic.nook { background: var(--critical); } .row .ic.err { background: var(--text-3); }
+.row .t { font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 13px; }
+.row .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.row .r { font-size: 12px; color: var(--text-3); }
+.new { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: var(--info-bg); } to { background: transparent; } }
+
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--text-2); margin-bottom: 4px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.chart { position: relative; }
+.chart svg { width: 100%; height: 220px; display: block; overflow: visible; }
+.chart text { fill: var(--text-3); font-size: 11px; }
+.tip { position: absolute; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); margin-top: -8px; }
+.bars .b { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 34px; gap: 8px; align-items: center; margin: 7px 0; font-size: 13px; }
+.bars .b .n { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars .b .tr { height: 12px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.bars .b .tr i { display: block; height: 100%; background: var(--critical); border-radius: 0 4px 4px 0; }
+.bars .b .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.stat:last-child { border-bottom: 0; }
+.stat b { font-variant-numeric: tabular-nums; }
+.help { color: var(--text-3); font-size: 12px; margin-top: 8px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Inspección de toallas <span class="sub" id="line"></span></h1>
+      <div class="sub" id="opinfo">Cargando…</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill" id="conn"><span class="dot" id="conndot"></span><span id="conntext">Conectando…</span></span>
+    <span class="clock" id="clock"></span>
+    <div class="controls">
+      <label class="sr" for="win">Periodo</label>
+      <select id="win" title="Periodo">
+        <option value="turno">Turno (8 h)</option>
+        <option value="hoy">Hoy</option>
+        <option value="24h">Últimas 24 h</option>
+        <option value="7d">Últimos 7 días</option>
+      </select>
+      <a class="btn" id="export" href="/api/export.csv?window=turno">Exportar CSV</a>
+      <button id="sound" aria-pressed="false" title="Sonido al detectar NO OK">🔇 Sonido</button>
+    </div>
+  </header>
+
+  <div class="alerts" id="alerts" aria-live="polite"></div>
+
+  <section class="kpis" aria-label="Indicadores">
+    <div class="kpi"><div class="lab">Toallas inspeccionadas</div><div class="val" id="k-total">–</div><div class="note" id="k-total-n"></div></div>
+    <div class="kpi bad"><div class="lab">NO OK (enviadas a revisión)</div><div class="val" id="k-nook">–</div><div class="note" id="k-nook-n"></div></div>
+    <div class="kpi"><div class="lab">OK</div><div class="val" id="k-ok">–</div><div class="note" id="k-ok-n"></div></div>
+    <div class="kpi"><div class="lab">Ritmo (últimos 15 min)</div><div class="val" id="k-rate">–</div><div class="note">toallas por hora</div></div>
+    <div class="kpi"><div class="lab">Tiempo de análisis</div><div class="val" id="k-ms">–</div><div class="note">promedio por foto</div></div>
+    <div class="kpi"><div class="lab">NO OK sin revisar</div><div class="val" id="k-pend">–</div><div class="note">confirmar en la lista</div></div>
+  </section>
+
+  <div class="grid">
+    <section class="card latest" aria-label="Toalla seleccionada">
+      <h2><span id="sel-title">Última toalla</span> <span class="muted" id="sel-sub"></span>
+        <button class="follow" id="follow" hidden>Seguir la última</button></h2>
+      <div class="imgbox" id="imgbox"><div class="empty">Esperando la primera foto…<br>Las fotos que guarde la cámara en la carpeta de entrada aparecerán aquí.</div></div>
+      <div class="meta" id="sel-meta"></div>
+      <div class="chips" id="sel-defects"></div>
+      <div class="review" id="sel-review"></div>
+    </section>
+
+    <section class="card" aria-label="Últimas inspecciones">
+      <h2>Últimas inspecciones <span class="muted" id="list-n"></span></h2>
+      <div class="list" id="list" role="list"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Toallas por hora <span class="muted" id="chart-sub"></span></h2>
+      <div class="legend"><span><i style="background:var(--good)"></i>OK</span><span><i style="background:var(--critical)"></i>NO OK</span></div>
+      <div class="chart" id="chart"><svg id="svg" role="img" aria-label="Toallas OK y NO OK por hora"></svg><div class="tip" id="tip" hidden></div></div>
+    </section>
+    <section class="card">
+      <h2>Tipo de defecto <span class="muted">toallas NO OK</span></h2>
+      <div class="bars" id="types"></div>
+      <div class="help">Tipo según el detector YOLO. "Sin tipo" = lo marcó el clasificador sin ubicar una caja clara.</div>
+    </section>
+    <section class="card">
+      <h2>Revisión del operador</h2>
+      <div id="rev"></div>
+      <div class="help">Confirmar cada NO OK mide la precisión real en la línea y genera datos para reentrenar.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { win: "turno", selected: null, follow: true, rows: [], sound: false, summary: null };
+const fmtPct = (x) => x == null ? "–" : (x * 100).toFixed(x < 0.1 ? 1 : 0) + " %";
+const fmtTime = (ts) => ts ? ts.slice(11, 19) : "";
+const REV = {
+  defecto_real: "Defecto real", falsa_alarma: "Falsa alarma",
+  ok_confirmado: "OK confirmado", defecto_no_detectado: "Tenía defecto",
+};
+try { const w = localStorage.getItem("galia.win"); if (w) state.win = w; state.sound = localStorage.getItem("galia.sound") === "1"; } catch (e) {}
+$("win").value = state.win;
+
+function decClass(d) { return d === "NO OK" ? "nook" : d === "OK" ? "ok" : "err"; }
+function decIcon(d) { return d === "NO OK" ? "✕" : d === "OK" ? "✓" : "!"; }
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(r.status + " " + path);
+  return r.json();
+}
+
+// ---------------------------------------------------------------- summary
+async function loadSummary() {
+  const s = await api("/api/summary?window=" + state.win);
+  state.summary = s;
+  $("line").textContent = "· " + s.line_name;
+  $("opinfo").textContent = `Punto de operación ${s.operating_point.replace("recall_", "recall ")} % · umbral ${s.threshold == null ? "–" : s.threshold.toFixed(3)} · desde ${s.start.replace("T", " ").slice(0, 16)}`;
+  $("k-total").textContent = s.total.toLocaleString("es-MX");
+  $("k-total-n").textContent = s.errors ? `${s.errors} con error` : "";
+  $("k-nook").innerHTML = `${s.nook.toLocaleString("es-MX")}<small>${fmtPct(s.nook_rate)}</small>`;
+  $("k-nook-n").textContent = s.expected_nook_rate != null ? `referencia ${fmtPct(s.expected_nook_rate)}` : "del total";
+  $("k-ok").innerHTML = `${s.ok.toLocaleString("es-MX")}<small>${s.total ? fmtPct(s.ok / s.total) : ""}</small>`;
+  $("k-rate").textContent = s.per_hour_last15;
+  $("k-ms").innerHTML = s.avg_ms == null ? "–" : `${(s.avg_ms / 1000).toFixed(1)}<small>s</small>`;
+  $("k-pend").textContent = s.pending_review;
+  renderAlerts(s.alerts);
+  renderChart(s.buckets, s.window === "7d");
+  renderTypes(s.defect_types);
+  renderReviews(s);
+  $("chart-sub").textContent = s.window === "7d" ? "por día" : "";
+}
+
+function renderAlerts(alerts) {
+  const icon = { critical: "!", warning: "!", info: "i" };
+  $("alerts").innerHTML = alerts.map(a => `<div class="alert ${a.level}"><div class="ic">${icon[a.level]}</div><div><b>${esc(a.title)}</b><span>${esc(a.detail)}</span></div></div>`).join("");
+}
+
+function renderTypes(types) {
+  if (!types.length) { $("types").innerHTML = `<div class="help">Sin toallas NO OK en este periodo.</div>`; return; }
+  const max = Math.max(...types.map(t => t[1]));
+  $("types").innerHTML = types.slice(0, 8).map(([n, v]) =>
+    `<div class="b"><span class="n" title="${esc(n)}">${esc(n)}</span><span class="tr"><i style="width:${(v / max * 100).toFixed(1)}%"></i></span><span class="v">${v}</span></div>`).join("");
+}
+
+function renderReviews(s) {
+  const r = s.reviews || {};
+  const rows = [
+    ["NO OK confirmadas como defecto", r.defecto_real || 0],
+    ["Falsas alarmas", r.falsa_alarma || 0],
+    ["Precisión observada", s.observed_precision == null ? "–" : fmtPct(s.observed_precision)],
+    ["OK confirmadas", r.ok_confirmado || 0],
+    ["Defectos no detectados (reportados)", s.missed_reported],
+  ];
+  $("rev").innerHTML = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
+}
+
+// ------------------------------------------------------------------ chart
+function renderChart(buckets, daily) {
+  const svg = $("svg"), W = svg.clientWidth || 600, H = 220, m = { l: 34, r: 8, t: 8, b: 24 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const maxV = Math.max(4, ...buckets.map(b => b.ok + b.nook));
+  const nice = niceMax(maxV), lead = nice / Math.pow(10, Math.floor(Math.log10(nice)));
+  const ticks = (lead === 2 || lead === 1 && nice < 10) ? 4 : 5;  // 50→10s, 25→5s, 20→5s, 10→2s, 4→1s
+  const n = Math.max(buckets.length, 1), step = iw / n, bw = Math.max(4, Math.min(42, step * 0.7));
+  const y = v => m.t + ih - v / nice * ih;
+  let g = "";
+  for (let i = 0; i <= ticks; i++) {
+    const v = nice * i / ticks, yy = y(v);
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>`;
+    g += `<text x="${m.l - 6}" y="${yy + 4}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  const every = Math.ceil(n / Math.max(1, Math.floor(iw / 48)));
+  buckets.forEach((b, i) => {
+    const x = m.l + step * i + (step - bw) / 2;
+    const yo = y(b.ok), yn = y(b.ok + b.nook);
+    if (b.ok) g += `<path d="${roundTop(x, yo, bw, y(0) - yo, b.nook ? 0 : 4)}" fill="var(--good)"/>`;
+    if (b.nook) g += `<path d="${roundTop(x, yn, bw, Math.max(1, yo - yn - (b.ok ? 2 : 0)), 4)}" fill="var(--critical)"/>`;
+    g += `<rect class="hit" data-i="${i}" x="${m.l + step * i}" y="${m.t}" width="${step}" height="${ih}" fill="transparent"/>`;
+    if (i % every === 0) g += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${b.label}</text>`;
+  });
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
+  svg.innerHTML = g;
+  const tip = $("tip");
+  svg.querySelectorAll(".hit").forEach(el => {
+    el.addEventListener("mousemove", ev => {
+      const b = buckets[+el.dataset.i], tot = b.ok + b.nook;
+      tip.innerHTML = `<b>${daily ? b.label : b.label + "–" + String((+b.label.slice(0, 2) + 1) % 24).padStart(2, "0") + ":00"}</b><br>${tot} toallas · OK ${b.ok} · NO OK ${b.nook}${tot ? " (" + fmtPct(b.nook / tot) + ")" : ""}`;
+      const r = $("chart").getBoundingClientRect();
+      tip.style.left = (ev.clientX - r.left) + "px"; tip.style.top = (ev.clientY - r.top) + "px"; tip.hidden = false;
+    });
+    el.addEventListener("mouseleave", () => tip.hidden = true);
+  });
+}
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const k of [1, 2, 2.5, 5, 10]) if (k * p >= v) return k * p; return 10 * p; }
+function roundTop(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+
+// ------------------------------------------------------------------- list
+async function loadList() {
+  state.rows = await api("/api/inspections?limit=100&window=" + state.win);
+  renderList();
+  if (state.follow && state.rows.length) select(state.rows[0], false);
+  else if (state.selected) { const r = state.rows.find(x => x.id === state.selected.id); if (r) select(r, false); }
+  else if (!state.rows.length) showEmpty();
+}
+function renderList(newId) {
+  $("list-n").textContent = state.rows.length ? `${state.rows.length} más recientes` : "";
+  $("list").innerHTML = state.rows.map(r => {
+    const rev = r.review ? REV[r.review] : (r.decision === "NO OK" ? "sin revisar" : "");
+    const desc = r.decision === "NO OK" ? (r.top_defect || "Defecto (clasificador)") : r.decision === "OK" ? "OK" : "Error de lectura";
+    return `<div class="row ${state.selected && state.selected.id === r.id ? "active" : ""} ${r.id === newId ? "new" : ""}" role="listitem" tabindex="0" data-id="${r.id}">
+      <span class="ic ${decClass(r.decision)}" aria-label="${r.decision}">${decIcon(r.decision)}</span>
+      <span class="t">${fmtTime(r.ts)}</span>
+      <span class="d" title="${esc(r.file)}">${esc(desc)}</span>
+      <span class="r">${rev}</span></div>`;
+  }).join("") || `<div class="help" style="padding:6px">Sin inspecciones en este periodo.</div>`;
+  $("list").querySelectorAll(".row").forEach(el => {
+    const pick = () => { const r = state.rows.find(x => x.id === +el.dataset.id); state.follow = r.id === state.rows[0].id; select(r, true); };
+    el.addEventListener("click", pick);
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+}
+function showEmpty() {
+  $("imgbox").innerHTML = `<div class="empty">Esperando la primera foto…<br>Las fotos que guarde la cámara en la carpeta de entrada aparecerán aquí.</div>`;
+  $("sel-meta").innerHTML = ""; $("sel-defects").innerHTML = ""; $("sel-review").innerHTML = "";
+}
+
+function select(r, userClick) {
+  const changed = !state.selected || state.selected.id !== r.id || state.selected.review !== r.review;
+  state.selected = r;
+  $("follow").hidden = state.follow;
+  $("sel-title").textContent = state.follow ? "Última toalla" : "Toalla seleccionada";
+  $("sel-sub").textContent = `#${r.id} · ${r.ts.replace("T", " ")}`;
+  document.querySelectorAll(".row").forEach(el => el.classList.toggle("active", +el.dataset.id === r.id));
+  if (!changed && !userClick) return;
+  const cls = decClass(r.decision);
+  const img = r.has_preview ? `<img src="/api/inspections/${r.id}/preview" alt="Foto de la toalla ${esc(r.file)}">` : `<div class="empty">Sin imagen</div>`;
+  $("imgbox").innerHTML = `${img}<div class="over"><span class="badge ${cls}">${decIcon(r.decision)} ${r.decision}</span></div>`;
+  let meta = `<span>Archivo <b>${esc(r.file)}</b></span>`;
+  if (r.decision !== "ERROR") {
+    const gauge = r.threshold > 0 ? (() => { const pct = Math.max(2, Math.min(100, r.score / (r.threshold * 2) * 100));
+      return ` <span class="gauge" title="La marca negra es el umbral"><i style="width:${pct}%;background:var(--${cls === "nook" ? "critical" : "good"})"></i><u style="left:50%"></u></span>`; })() : "";
+    meta += `<span>Score <b>${r.score.toFixed(3)}</b>${gauge} umbral ${r.threshold.toFixed(3)}</span>`;
+    meta += `<span>Análisis <b>${(r.elapsed_ms / 1000).toFixed(1)} s</b></span>`;
+  } else meta += `<span>${esc(r.error || "")}</span>`;
+  $("sel-meta").innerHTML = meta;
+  const defs = (r.defects || []).filter(d => d.conf >= 0.25).sort((a, b) => b.conf - a.conf);
+  $("sel-defects").innerHTML = defs.map(d => `<span class="chip">${esc(d.cls)} · ${(d.conf * 100).toFixed(0)} %</span>`).join("");
+  renderReviewButtons(r);
+}
+
+function renderReviewButtons(r) {
+  if (r.decision === "ERROR") { $("sel-review").innerHTML = ""; return; }
+  const opts = r.decision === "NO OK"
+    ? [["defecto_real", "✓ Defecto real", "D"], ["falsa_alarma", "✕ Falsa alarma", "F"]]
+    : [["ok_confirmado", "✓ OK correcto", "O"], ["defecto_no_detectado", "✕ Tenía defecto", "X"]];
+  $("sel-review").innerHTML = `<span class="q">${r.decision === "NO OK" ? "¿Tiene defecto?" : "¿Está bien?"}</span>` +
+    opts.map(([k, l, key]) => `<button data-k="${k}" class="${r.review === k ? "sel" : ""}">${l}<span class="kbd">${key}</span></button>`).join("");
+  $("sel-review").querySelectorAll("button").forEach(b => b.addEventListener("click", () => sendReview(r.id, b.dataset.k)));
+}
+async function sendReview(id, k) {
+  try {
+    const row = await api(`/api/inspections/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ review: k }) });
+    upsert(row); if (state.selected && state.selected.id === id) select(row, true);
+    loadSummary();
+  } catch (e) { console.error(e); }
+}
+document.addEventListener("keydown", e => {
+  if (!state.selected || e.target.tagName === "SELECT" || e.ctrlKey || e.metaKey || e.altKey) return;
+  const map = state.selected.decision === "NO OK" ? { d: "defecto_real", f: "falsa_alarma" } : { o: "ok_confirmado", x: "defecto_no_detectado" };
+  const k = map[e.key.toLowerCase()]; if (k) sendReview(state.selected.id, k);
+});
+$("follow").addEventListener("click", () => { state.follow = true; if (state.rows.length) select(state.rows[0], true); });
+
+function upsert(row) {
+  const i = state.rows.findIndex(r => r.id === row.id);
+  if (i >= 0) state.rows[i] = row; else { state.rows.unshift(row); state.rows = state.rows.slice(0, 100); }
+}
+
+// ------------------------------------------------------------------- live
+let es, sumTimer;
+function connect() {
+  es = new EventSource("/api/events");
+  es.onopen = () => setConn(true);
+  es.onerror = () => setConn(false);
+  es.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.type === "inspection") {
+      upsert(m.data); renderList(m.data.id);
+      if (state.follow) select(m.data, true);
+      if (m.data.decision === "NO OK") beep();
+    } else if (m.type === "review") {
+      upsert(m.data); renderList();
+      if (state.selected && state.selected.id === m.data.id) select(m.data, true);
+    }
+    clearTimeout(sumTimer); sumTimer = setTimeout(loadSummary, 400);
+  };
+}
+function setConn(on) {
+  $("conndot").className = "dot " + (on ? "on" : "off");
+  $("conntext").textContent = on ? "En vivo" : "Sin conexión, reintentando…";
+}
+let actx;
+function beep() {
+  if (!state.sound) return;
+  try {
+    actx = actx || new AudioContext();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = 880; g.gain.value = 0.08; o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + 0.18);
+  } catch (e) {}
+}
+function setSound(on) {
+  state.sound = on; $("sound").textContent = on ? "🔔 Sonido" : "🔇 Sonido"; $("sound").setAttribute("aria-pressed", on);
+  try { localStorage.setItem("galia.sound", on ? "1" : "0"); } catch (e) {}
+}
+$("sound").addEventListener("click", () => { setSound(!state.sound); if (state.sound) beep(); });
+$("win").addEventListener("change", () => {
+  state.win = $("win").value; $("export").href = "/api/export.csv?window=" + (state.win === "turno" ? "turno" : state.win);
+  try { localStorage.setItem("galia.win", state.win); } catch (e) {}
+  state.follow = true; loadSummary(); loadList();
+});
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-MX"); }, 1000);
+setInterval(loadSummary, 30000);
+window.addEventListener("resize", () => state.summary && renderChart(state.summary.buckets, state.summary.window === "7d"));
+setSound(state.sound);
+$("export").href = "/api/export.csv?window=" + state.win;
+loadSummary().catch(console.error); loadList().catch(console.error); connect();
+</script>
+</body>
+</html>

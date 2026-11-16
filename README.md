@@ -107,6 +107,24 @@ python scripts/08_evaluate.py                      # scores por toalla, ensamble
 
 ## Uso en producción
 
+### Servicio de línea con tablero en vivo (recomendado)
+
+```bash
+python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --line-name "Línea 1"
+# abrir http://localhost:8000 en la pantalla de la línea (otras PCs de la planta: --host 0.0.0.0)
+```
+
+- La cámara guarda cada foto en `--inbox`. El servicio la analiza (~0.8 s por toalla en una RTX 3060) y la mueve a `archivo/AAAA-MM-DD/{OK,NO_OK,errores}/`. Cada resultado queda registrado en `inspecciones.db` (SQLite).
+- **Tablero en vivo:** KPIs del turno, última toalla con mapa de calor y cajas, lista de inspecciones, toallas por hora, tipos de defecto y alertas (NO OK seguidas, tasa alta, errores, línea detenida).
+- **Revisión del operador:** cada toalla se marca como *defecto real / falsa alarma* (teclas D/F) u *OK correcto / tenía defecto* (O/X). Así se mide la precisión real y se acumulan etiquetas para reentrenar.
+- API: `POST /api/inspect` (subir una foto), `GET /api/summary`, `GET /api/inspections`, `GET /api/export.csv?window=hoy`, `GET /api/health`.
+- Para probarlo sin la máquina: `python scripts/simulate_line.py --every 4`, que copia fotos de test a la carpeta de entrada.
+- ⚠️ El servicio no tiene usuarios ni contraseñas. Úsalo solo en la red interna.
+
+Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/reportes/`](docs/reportes/).
+
+### Inferencia por lotes
+
 ```bash
 python scripts/predict.py carpeta_o_foto.png --out reports/predicciones --save-images
 ```
@@ -135,7 +153,8 @@ res["decision"], res["score"], res["defects"]
 ```text
 src/galia/          código reutilizable (config, datos, recortes, máscara, modelos, ensamble, inferencia, gráficas)
 scripts/04-08       construcción del dataset, entrenamiento y evaluación
-scripts/predict.py  inferencia por lotes (producción)
+scripts/predict.py  inferencia por lotes
+scripts/serve.py    servicio de línea + tablero en vivo (src/galia/service/)
 notebooks/05-09     análisis y visualizaciones del pipeline v2
 notebooks/01-04     modelos históricos (v1), se conservan como referencia
 reports/            métricas (metrics.md / metrics.json) y scores por toalla

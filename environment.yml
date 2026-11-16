@@ -27,3 +27,6 @@ dependencies:
     - pillow
     - ipykernel
     - nbconvert
+    - fastapi==0.115.6
+    - uvicorn==0.34.0
+    - python-multipart==0.0.20
