@@ -19,7 +19,7 @@ from .models import ClassifierTilePredictor, PatchcorePredictor, YoloTilePredict
 
 DEFAULT_FILES = {
     "yolo": "yolo11s_tiles.pt",
-    "cls": "tile_cls_efficientnet_b0.pt",
+    "cls": "tile_cls_ensemble.json",
     "patchcore": "patchcore_wrn50.pt",
     "ensemble": "ensemble.json",
 }

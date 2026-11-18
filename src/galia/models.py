@@ -82,13 +82,52 @@ def build_classifier(arch: str = "efficientnet_b0", pretrained: bool = True):
 
 
 class ClassifierTilePredictor:
-    def __init__(self, weights: str | Path, batch: int = 32, use_roi: bool = True):
-        ckpt = torch.load(weights, map_location="cpu", weights_only=False)
-        self.model = build_classifier(ckpt["arch"], pretrained=False)
-        self.model.load_state_dict(ckpt["state_dict"])
+    """Tile classifier applied to the whole towel.
+
+    ``weights`` may be one checkpoint (.pt) or a JSON file describing an ensemble::
+
+        {"members": ["tile_cls_a.pt", "tile_cls_b.pt"], "tta": true, "agg": "max"}
+
+    Tile probabilities are averaged over members and TTA views (identity + flips);
+    the towel score aggregates the tiles (``max`` or ``top2``/``top3`` = mean of the k
+    most suspicious tiles).
+    """
+
+    def __init__(self, weights: str | Path, batch: int = 32, use_roi: bool = True,
+                 tta: bool | None = None, agg: str | None = None):
+        import json
+
+        weights = Path(weights)
+        cfg = {"members": [weights.name], "tta": False, "agg": "max"}
+        if weights.suffix == ".json":
+            cfg.update(json.loads(weights.read_text(encoding="utf-8")))
+        self.tta = cfg["tta"] if tta is None else tta
+        self.agg = cfg["agg"] if agg is None else agg
         self.device = _device()
-        self.model.to(self.device).eval()
+        self.models = []
+        for m in cfg["members"]:
+            ckpt = torch.load(weights.parent / m, map_location="cpu", weights_only=False)
+            net = build_classifier(ckpt["arch"], pretrained=False)
+            net.load_state_dict(ckpt["state_dict"])
+            self.models.append(net.to(self.device).eval())
         self.batch, self.use_roi = batch, use_roi
+
+    @torch.no_grad()
+    def tile_probs(self, x: torch.Tensor) -> torch.Tensor:
+        views = [x, x.flip(3), x.flip(2)] if self.tta else [x]
+        acc = 0
+        for net in self.models:
+            for v in views:
+                with torch.autocast(self.device.type, enabled=self.device.type == "cuda"):
+                    acc = acc + torch.sigmoid(net(v).float()).squeeze(1)
+        return (acc / (len(self.models) * len(views))).cpu()
+
+    @staticmethod
+    def aggregate(probs: np.ndarray, agg: str = "max") -> float:
+        if agg.startswith("top"):
+            k = int(agg[3:])
+            return float(np.sort(probs)[::-1][:k].mean())
+        return float(probs.max())
 
     @torch.no_grad()
     def __call__(self, img: np.ndarray) -> TowelResult:
@@ -100,8 +139,7 @@ class ClassifierTilePredictor:
         probs = []
         for i in range(0, len(wins), self.batch):
             x = _to_tensor([crop(img, w, C.CLS_TILE) for w in wins[i:i + self.batch]], self.device)
-            with torch.autocast(self.device.type, enabled=self.device.type == "cuda"):
-                probs.append(torch.sigmoid(self.model(x).float()).squeeze(1).cpu())
+            probs.append(self.tile_probs(x))
         probs = torch.cat(probs).numpy()
         # coarse heat-map (one cell per tile stride) for visualisation
         stride = int(C.CLS_TILE * (1 - C.CLS_OVERLAP))
@@ -109,7 +147,7 @@ class ClassifierTilePredictor:
         for w, p in zip(wins, probs):
             ys, xs = slice(w[1] // stride, max(w[1] // stride + 1, w[3] // stride)), slice(w[0] // stride, max(w[0] // stride + 1, w[2] // stride))
             heat[ys, xs] = np.maximum(heat[ys, xs], p)
-        return TowelResult(score=float(probs.max()), heatmap=heat, tile_scores=list(zip(wins, probs.tolist())))
+        return TowelResult(score=self.aggregate(probs, self.agg), heatmap=heat, tile_scores=list(zip(wins, probs.tolist())))
 
 
 # ----------------------------------------------------------------------- PatchCore

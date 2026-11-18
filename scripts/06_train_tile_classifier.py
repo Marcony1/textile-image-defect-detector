@@ -16,18 +16,13 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import average_precision_score, roc_auc_score
 from torch.utils.data import DataLoader, WeightedRandomSampler
-from torchvision import datasets, transforms
+from torchvision import datasets
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from galia import config as C  # noqa: E402
+from galia.augment import (CopyPasteFolder, basic_transform, build_defect_bank,  # noqa: E402
+                           eval_transform, strong_transform)
 from galia.models import build_classifier  # noqa: E402
-
-MEAN, STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-
-
-class RandomRot90:
-    def __call__(self, x):
-        return torch.rot90(x, int(torch.randint(0, 4, (1,))), dims=(1, 2))
 
 
 def main():
@@ -40,18 +35,25 @@ def main():
     ap.add_argument("--init", default=None, help="checkpoint to fine-tune from (e.g. after hard-negative mining)")
     ap.add_argument("--hn-weight", type=float, default=1.0,
                     help="sampling weight of hard-negative tiles (hn_*) relative to other clean tiles")
+    ap.add_argument("--aug", choices=["basic", "strong"], default="basic")
+    ap.add_argument("--copy-paste", type=float, default=0.0,
+                    help="probability of turning a clean tile into a defect tile by pasting a real train defect")
+    ap.add_argument("--tag", default="", help="suffix for the checkpoint / run name (experiments)")
+    ap.add_argument("--seed", type=int, default=C.SEED)
     args = ap.parse_args()
-    torch.manual_seed(C.SEED)
-    np.random.seed(C.SEED)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    import random
+    random.seed(args.seed)
 
-    train_tf = transforms.Compose([
-        transforms.RandomHorizontalFlip(), transforms.RandomVerticalFlip(),
-        # mild photometric jitter: no hue change (dye differences are defects)
-        transforms.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.15),
-        transforms.ToTensor(), RandomRot90(), transforms.Normalize(MEAN, STD),
-    ])
-    val_tf = transforms.Compose([transforms.ToTensor(), transforms.Normalize(MEAN, STD)])
-    train_ds = datasets.ImageFolder(C.CLS_TILES_DIR / "train", transform=train_tf)
+    train_tf = strong_transform() if args.aug == "strong" else basic_transform()
+    val_tf = eval_transform()
+    if args.copy_paste > 0:
+        bank = build_defect_bank()
+        print(f"copy-paste p={args.copy_paste} with {len(bank)} train defect crops")
+        train_ds = CopyPasteFolder(C.CLS_TILES_DIR / "train", train_tf, bank, args.copy_paste)
+    else:
+        train_ds = datasets.ImageFolder(C.CLS_TILES_DIR / "train", transform=train_tf)
     val_ds = datasets.ImageFolder(C.CLS_TILES_DIR / "val", transform=val_tf)
     assert train_ds.classes == ["clean", "defect"], train_ds.classes
 
@@ -83,7 +85,8 @@ def main():
 
     out_dir = C.MODELS_DIR
     out_dir.mkdir(exist_ok=True)
-    ckpt_path = out_dir / f"tile_cls_{args.arch}.pt"
+    name = f"tile_cls_{args.arch}" + (f"_{args.tag}" if args.tag else "")
+    ckpt_path = out_dir / f"{name}.pt"
     hist, best = [], -1
     for ep in range(args.epochs):
         t0 = time.time()
@@ -116,10 +119,11 @@ def main():
               f"| {time.time() - t0:.0f}s", flush=True)
         if ap_ > best:
             best = ap_
-            torch.save({"arch": args.arch, "state_dict": model.state_dict(), "epoch": ep + 1, "val_ap": ap_},
+            torch.save({"arch": args.arch, "state_dict": model.state_dict(), "epoch": ep + 1, "val_ap": ap_,
+                        "config": vars(args)},
                        ckpt_path)
-    (C.RUNS_DIR / f"tile_cls_{args.arch}").mkdir(parents=True, exist_ok=True)
-    (C.RUNS_DIR / f"tile_cls_{args.arch}" / "history.json").write_text(json.dumps(hist, indent=2))
+    (C.RUNS_DIR / name).mkdir(parents=True, exist_ok=True)
+    (C.RUNS_DIR / name / "history.json").write_text(json.dumps(hist, indent=2))
     print(f"best val AP {best:.4f} -> {ckpt_path}")
 
 

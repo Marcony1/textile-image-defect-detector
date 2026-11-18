@@ -12,22 +12,38 @@ Evaluación **por toalla** sobre 231 toallas de prueba (74 NO OK, 157 OK) que ni
 
 | | v1 (CNN en foto reducida) | **v2 (punto `recall_98`)** | v2 (punto `recall_95`) |
 |---|---|---|---|
-| Recall de toallas NO OK | 22 % | **89.2 % (66/74)** | 86.5 % (64/74) |
-| Falsas alarmas (OK enviadas a revisión) | — | 23.6 % (37/157) | 16.6 % (26/157) |
-| AUC por toalla | — | 0.90 | 0.90 |
+| Recall de toallas NO OK | 22 % | **91.9 % (68/74)** | 90.5 % (67/74) |
+| Falsas alarmas (OK enviadas a revisión) | — | 28.0 % (44/157) | 15.3 % (24/157) |
+| AUC por toalla | — | 0.94 | 0.94 |
 
 Solo la **cámara de producción** (junio 2025; 77 toallas de prueba, 40 NO OK):
 
 | Punto de operación | Recall NO OK | Falsas alarmas OK |
 |---|---|---|
-| `recall_90` | 72.5 % (29/40) | 10.8 % (4/37) |
-| `recall_95` | 80.0 % (32/40) | 16.2 % (6/37) |
-| **`recall_98` (por defecto)** | **85.0 % (34/40)** | 27.0 % (10/37) |
+| `recall_90` | 82.5 % (33/40) | 8.1 % (3/37) |
+| `recall_95` | 87.5 % (35/40) | 16.2 % (6/37) |
+| **`recall_98` (por defecto)** | **90.0 % (36/40)** | 37.8 % (14/37) |
 
-- El modelo elegido en validación es el **clasificador EfficientNet-B0 por recortes**, con minería de negativos difíciles y calibración por cámara. YOLO11 sigue en el pipeline para **ubicar y nombrar** el defecto. En recortes de validación, YOLO subió su mAP50 de 0.25 a 0.47; la etiqueta de control se detecta con mAP50 = 0.96.
+- El modelo elegido en validación es el **clasificador por recortes: combinación de 2 EfficientNet-B0** (`models/tile_cls_ensemble.json`, promedio de probabilidades; la toalla toma el promedio de sus 2 recortes más sospechosos), con minería de negativos difíciles y calibración por cámara. Frente a un solo EfficientNet, el AUC de prueba subió de 0.90 a 0.94, y en la cámara de producción el recall subió 5–10 puntos en cada punto de operación (ver [Experimentos de mejora](#experimentos-de-mejora)). YOLO11 sigue en el pipeline para **ubicar y nombrar** el defecto. En recortes de validación, YOLO subió su mAP50 de 0.25 a 0.47; la etiqueta de control se detecta con mAP50 = 0.96.
 - Los defectos que más se escapan son **manchas pequeñas (~40 px), costuras en esquinas e hilos de ~15 px**, y algunas **franjas de teñido muy tenues** que atraviesan la toalla. Son los tipos donde más anotaciones ayudarían.
 - Con 40 toallas NO OK por cámara, cada toalla equivale a 2.5 puntos de recall. Las cifras tienen un margen de ±5–10 puntos.
 - El detalle completo está en [`reports/metrics.md`](reports/metrics.md) y en el notebook `09_evaluacion_ensamble`.
+
+### Experimentos de mejora
+
+Todas las variantes se compararon **solo en validación** (`scripts/09_experiment_val.py`, tabla en [`reports/experiments/summary.csv`](reports/experiments/summary.csv)). La comparación usa el AUC por toalla con intervalo bootstrap, el AUC pareado contra el modelo base y las falsas alarmas al 95 % de recall. El conjunto de prueba se usó **una sola vez**, con la variante ya elegida.
+
+| Variante (validación) | AUC global | AUC cámara junio | Resultado |
+|---|---|---|---|
+| EfficientNet-B0 base (v1 + ajuste con negativos difíciles) | 0.904 | 0.942 | referencia |
+| + TTA (volteos) | 0.889 | 0.945 | sin mejora |
+| Aumentación fuerte (luz, contraste, tono ±0.02, desenfoque, ruido, recortes) | 0.854 | 0.942 | peor en abril |
+| Aumentación fuerte + copiar-pegar defectos de train | 0.861 | 0.932 | peor |
+| ConvNeXt-Tiny | 0.722 | 0.958 | inestable entre cámaras (abril AUC 0.72) |
+| Base + ConvNeXt-Tiny (top2) | 0.915 | 0.958 | mejora, pero depende de un modelo frágil |
+| **Base + 2.º B0 (semilla 7), top2** | **0.914** | **0.949** | **elegido**: ΔAUC global +0.009 [0.000, 0.021] |
+
+La aumentación agresiva no ayuda. Las fotos de la máquina Keyence ya son uniformes, y forzar variaciones de luz o color aumenta las falsas alarmas en toallas buenas. El límite actual está en los **datos**: hay pocos ejemplos de manchas pequeñas, hilos finos, costuras en esquinas y teñido tenue.
 
 ---
 
@@ -99,6 +115,8 @@ python scripts/06_train_tile_classifier.py --arch efficientnet_b0 --epochs 15   
 cp models/tile_cls_efficientnet_b0.pt models/tile_cls_efficientnet_b0_v1.pt
 python scripts/06b_mine_hard_negatives.py --weights models/tile_cls_efficientnet_b0_v1.pt   # recortes OK que el modelo confunde
 python scripts/06_train_tile_classifier.py --init models/tile_cls_efficientnet_b0_v1.pt --epochs 6 --lr 1e-4 --hn-weight 3
+python scripts/06_train_tile_classifier.py --arch efficientnet_b0 --epochs 15 --hn-weight 3 --seed 7 --tag basic_s7   # 2.º miembro
+# models/tile_cls_ensemble.json combina ambos modelos (agg top2)
 python scripts/07_train_patchcore.py --max-tiles 1500 --coreset 0.01            # ≈7 min -> models/patchcore_wrn50.pt
 python scripts/08_evaluate.py                      # scores por toalla, ensamble, umbrales -> reports/, models/ensemble.json
 ```
@@ -114,7 +132,7 @@ python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --li
 # abrir http://localhost:8000 en la pantalla de la línea (otras PCs de la planta: --host 0.0.0.0)
 ```
 
-- La cámara guarda cada foto en `--inbox`. El servicio la analiza (~0.8 s por toalla en una RTX 3060) y la mueve a `archivo/AAAA-MM-DD/{OK,NO_OK,errores}/`. Cada resultado queda registrado en `inspecciones.db` (SQLite).
+- La cámara guarda cada foto en `--inbox`. El servicio la analiza (~0.8–1 s por toalla en una RTX 3060) y la mueve a `archivo/AAAA-MM-DD/{OK,NO_OK,errores}/`. Cada resultado queda registrado en `inspecciones.db` (SQLite).
 - **Tablero en vivo:** KPIs del turno, última toalla con mapa de calor y cajas, lista de inspecciones, toallas por hora, tipos de defecto y alertas (NO OK seguidas, tasa alta, errores, línea detenida).
 - **Revisión del operador:** cada toalla se marca como *defecto real / falsa alarma* (teclas D/F) u *OK correcto / tenía defecto* (O/X). Así se mide la precisión real y se acumulan etiquetas para reentrenar.
 - API: `POST /api/inspect` (subir una foto), `GET /api/summary`, `GET /api/inspections`, `GET /api/export.csv?window=hoy`, `GET /api/health`.

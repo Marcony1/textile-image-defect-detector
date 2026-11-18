@@ -60,11 +60,11 @@ ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; widt
 <h1>Inspección automática de toallas con visión por computadora</h1>
 <div class="meta">Avance del proyecto y propuesta de siguientes pasos · noviembre 2026</div>
 
-<p class="lead">El sistema ahora detecta <b>casi 9 de cada 10 toallas con defecto</b>, contra 2 de cada 10 en la primera versión. Ya existe un programa listo para instalarse en la línea: analiza la foto de cada toalla en menos de un segundo y muestra los resultados en una pantalla en vivo. Proponemos un <b>piloto de 2 a 4 semanas</b> en la línea antes de automatizar el rechazo de piezas.</p>
+<p class="lead">El sistema ahora detecta <b>más de 9 de cada 10 toallas con defecto</b>, contra 2 de cada 10 en la primera versión. Ya existe un programa listo para instalarse en la línea: analiza la foto de cada toalla en menos de un segundo y muestra los resultados en una pantalla en vivo. Proponemos un <b>piloto de 2 a 4 semanas</b> en la línea antes de automatizar el rechazo de piezas.</p>
 
 <div class="kpis">
-  <div class="kpi g"><div class="v">22 % → 89 %</div><div class="l">toallas con defecto detectadas<br>(prueba con 74 toallas defectuosas)</div></div>
-  <div class="kpi b"><div class="v">~1 de 4</div><div class="l">toallas buenas se mandan a revisión por error</div></div>
+  <div class="kpi g"><div class="v">22 % → 92 %</div><div class="l">toallas con defecto detectadas<br>(prueba con 74 toallas defectuosas)</div></div>
+  <div class="kpi b"><div class="v">~1 de 4</div><div class="l">toallas buenas se mandan a revisión por error (1 de 6 en el ajuste intermedio)</div></div>
   <div class="kpi u"><div class="v">&lt; 1 s</div><div class="l">por toalla, con una foto por pieza como ya trabaja la máquina</div></div>
 </div>
 
@@ -74,6 +74,7 @@ ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; widt
   <li><b>Se usaron todas las fotos disponibles:</b> 1,538 toallas, incluidas las nuevas fotos etiquetadas de junio y las ~800 fotos de piezas buenas.</li>
   <li><b>Se aprovechan modelos ya entrenados con millones de imágenes</b>, en lugar de aprender desde cero con pocas fotos.</li>
   <li><b>Se ajustó el sistema a la cámara de producción.</b> Las fotos de abril y de junio tienen distinta luz, y eso confundía al sistema. Ahora cada cámara tiene su propia calibración.</li>
+  <li><b>Se combinaron dos modelos.</b> Se probaron más técnicas: variar luz, color y orientación de las fotos, "pegar" defectos en toallas sanas y otra arquitectura. Solo la combinación de dos modelos mejoró de forma estable. Variar la luz y el color no ayudó, porque las fotos de la máquina Keyence ya son muy parejas.</li>
 </ul>
 <p>La <b>etiqueta</b> de la toalla se usó como control: el sistema la encuentra el 96 % de las veces, lo que confirma que "ve" bien la foto.</p>
 
@@ -83,25 +84,25 @@ ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; widt
   <div>
     <b>De cada 100 toallas con defecto</b>
     <div class="dots" id="d1"></div>
-    <div class="legend"><i style="background:#0ca30c;margin-left:0"></i>85 detectadas <i style="background:#d03b3b"></i>15 se escapan</div>
+    <div class="legend"><i style="background:#0ca30c;margin-left:0"></i>90 detectadas <i style="background:#d03b3b"></i>10 se escapan</div>
   </div>
   <div>
     <b>De cada 100 toallas buenas</b>
     <div class="dots" id="d2"></div>
-    <div class="legend"><i style="background:#c9c8c2;margin-left:0"></i>73 pasan <i style="background:#eda100"></i>27 van a revisión</div>
+    <div class="legend"><i style="background:#c9c8c2;margin-left:0"></i>62 pasan <i style="background:#eda100"></i>38 van a revisión</div>
   </div>
 </div>
-<p>Con todas las fotos de prueba (ambas cámaras) los números son 89 y 24. Como solo hay unas 40 toallas defectuosas por cámara, estas cifras pueden variar ±5–10 puntos. El piloto en la línea dará el número real.</p>
+<p>Con todas las fotos de prueba (ambas cámaras) los números son 92 y 28. En el ajuste intermedio son 90 y 15: casi la misma detección con la mitad de revisiones. Como solo hay unas 40 toallas defectuosas por cámara, estas cifras pueden variar ±5–10 puntos. El piloto en la línea dará el número real.</p>
 
 <h3>Ejemplo en un turno</h3>
 <p>Supongamos 1,000 toallas, de las cuales el 5 % tiene defecto. <i>Ese 5 % es un supuesto; la tasa real se medirá en el piloto.</i></p>
 <table>
   <tr><th>Ajuste del sistema</th><th class="n">Defectuosas detectadas</th><th class="n">Defectuosas que se escapan</th><th class="n">Buenas enviadas a revisión</th></tr>
-  <tr class="hl"><td>Máxima detección (recomendado para el piloto)</td><td class="n">≈ 43 de 50</td><td class="n">≈ 7</td><td class="n">≈ 255 de 950</td></tr>
-  <tr><td>Intermedio</td><td class="n">≈ 40 de 50</td><td class="n">≈ 10</td><td class="n">≈ 155 de 950</td></tr>
-  <tr><td>Menos revisiones</td><td class="n">≈ 36 de 50</td><td class="n">≈ 14</td><td class="n">≈ 100 de 950</td></tr>
+  <tr class="hl"><td>Máxima detección (recomendado para el piloto)</td><td class="n">≈ 45 de 50</td><td class="n">≈ 5</td><td class="n">≈ 360 de 950</td></tr>
+  <tr><td>Intermedio</td><td class="n">≈ 44 de 50</td><td class="n">≈ 6</td><td class="n">≈ 155 de 950</td></tr>
+  <tr><td>Menos revisiones</td><td class="n">≈ 41 de 50</td><td class="n">≈ 9</td><td class="n">≈ 75 de 950</td></tr>
 </table>
-<p>El ajuste es una <b>decisión de negocio</b>: más detección implica revisar a mano más toallas buenas. Hoy el sistema ya sirve como <b>filtro</b>: el inspector revisa unas 300 de cada 1,000 toallas en vez de todas y encuentra ahí la mayoría de los defectos. Lo siguiente es bajar las revisiones innecesarias.</p>
+<p>El ajuste es una <b>decisión de negocio</b>: más detección implica revisar a mano más toallas buenas. Hoy el sistema ya sirve como <b>filtro</b>: el inspector revisa entre 100 y 400 de cada 1,000 toallas, según el ajuste, en vez de todas y encuentra ahí la mayoría de los defectos. Lo siguiente es bajar las revisiones innecesarias.</p>
 
 <h3>Qué defectos se escapan</h3>
 <p>Sobre todo las <b>manchas muy pequeñas</b>, los <b>hilos sueltos finos</b>, las <b>costuras en las esquinas</b> (a veces tapadas por la etiqueta) y las <b>franjas de teñido muy tenues</b> que atraviesan la toalla. Son difíciles de ver incluso en la foto, y hay pocos ejemplos etiquetados de ellos. Más ejemplos de esos tipos es lo que más ayudaría.</p>
@@ -147,7 +148,7 @@ Mejora mensual con las confirmaciones de los operadores. Cuando los números lo 
 <footer>Cifras medidas en fotos de prueba que el sistema no vio durante su entrenamiento. Detalle técnico en el reporte técnico adjunto.</footer>
 <script>
 function dots(id, n, a, ca, cb) { const el = document.getElementById(id); let h = ""; for (let i = 0; i < n; i++) h += `<i style="background:${i < a ? ca : cb}"></i>`; el.innerHTML = h; }
-dots("d1", 100, 85, "#0ca30c", "#d03b3b");
-dots("d2", 100, 73, "#c9c8c2", "#eda100");
+dots("d1", 100, 90, "#0ca30c", "#d03b3b");
+dots("d2", 100, 62, "#c9c8c2", "#eda100");
 </script>
 </body></html>
