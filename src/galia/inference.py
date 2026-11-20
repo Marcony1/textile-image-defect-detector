@@ -32,23 +32,38 @@ class TowelInspector:
         self.operating_point = operating_point
         self.threshold = ensemble.thresholds[operating_point]
 
+    calibration: dict | None = None  # contents of calibracion.json, if any
+    default_scale: float = 1.0
+
     @classmethod
-    def from_dir(cls, models_dir=C.MODELS_DIR, operating_point: str = "recall_98"):
+    def from_dir(cls, models_dir=C.MODELS_DIR, operating_point: str = "recall_98", use_calibration: bool = True):
+        """Load the models. If ``calibracion.json`` exists (see galia.calibration) its
+        score baseline and photo scale replace the factory ones (June-2025 camera)."""
+        import json
+
         d = Path(models_dir)
         ens = Ensemble.load(d / DEFAULT_FILES["ensemble"])
         builders = {"yolo": YoloTilePredictor, "cls": ClassifierTilePredictor, "patchcore": PatchcorePredictor}
         preds = {m: builders[m](d / DEFAULT_FILES[m]) for m in ens.models}
         if "yolo" not in preds and (d / DEFAULT_FILES["yolo"]).exists():
             preds["yolo"] = YoloTilePredictor(d / DEFAULT_FILES["yolo"])  # still useful to locate defects
-        return cls(preds, ens, operating_point)
+        insp = cls(preds, ens, operating_point)
+        cal_path = d / "calibracion.json"
+        if use_calibration and cal_path.exists():
+            cal = json.loads(cal_path.read_text(encoding="utf-8"))
+            ens.norm[cal["capture"]] = cal["norm"]
+            ens.default_capture = cal["capture"]
+            insp.calibration, insp.default_scale = cal, float(cal.get("scale", 1.0))
+        return insp
 
-    def inspect(self, image, scale: float = 1.0) -> dict:
+    def inspect(self, image, scale: float | None = None) -> dict:
         """``image``: path or RGB array from the production camera.
 
         ``scale`` resizes the photo to the pixel scale the models were trained
         on (1.0 for the June-2025 / production set-up, 0.62 for the April-2025
         5120x5120 camera).
         """
+        scale = self.default_scale if scale is None else scale
         if not isinstance(image, np.ndarray):
             im = Image.open(image).convert("RGB")
             if scale != 1.0:

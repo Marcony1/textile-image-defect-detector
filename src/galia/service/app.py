@@ -13,6 +13,11 @@ Endpoints (all JSON unless noted):
     POST /api/inspect               multipart upload of one photo -> decision (synchronous)
     GET  /api/events                Server-Sent Events stream (new inspection / review)
     GET  /api/export.csv?window=hoy CSV for the shift report
+    GET  /api/setup                 folders, device, calibration, demo availability, branding
+    POST /api/demo                  copy the demo photos into the inbox, one every ~1.5 s
+    GET  /api/demo/result           demo decisions vs. the known answers (etiquetas.csv)
+    POST /api/batch {"folder": ...} analyse every photo of a folder (the originals are not moved)
+    GET  /brand/logo                logo file from the branding config
 """
 from __future__ import annotations
 
@@ -20,6 +25,8 @@ import asyncio
 import csv
 import io
 import json
+import shutil
+import threading
 import time
 from collections import Counter
 from dataclasses import asdict, dataclass
@@ -43,6 +50,19 @@ class ServiceConfig:
     rate_alert: float = 0.50       # NO OK share above this -> alert
     idle_minutes: int = 10         # no towel for this long -> notice
     expected_nook_rate: float | None = None  # optional reference shown on the dashboard
+    demo_dir: Path | None = None   # folder with demo photos + etiquetas.csv (archivo,real,tipo)
+    brand_name: str = ""           # company name shown next to the logo
+    brand_logo: Path | None = None  # PNG/SVG/JPG logo
+    brand_color: str = ""          # main brand colour (#rrggbb): header bar and buttons
+    brand_color_2: str = ""        # secondary brand colour (#rrggbb)
+    note: str = ""                 # free text shown in the setup panel
+
+
+def _demo_labels(demo_dir: Path | None) -> dict:
+    if not demo_dir or not (demo_dir / "etiquetas.csv").exists():
+        return {}
+    with open(demo_dir / "etiquetas.csv", encoding="utf-8-sig", newline="") as f:
+        return {r["archivo"]: r for r in csv.DictReader(f)}
 
 
 def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = ServiceConfig()) -> FastAPI:
@@ -74,6 +94,81 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
     @app.get("/", response_class=HTMLResponse)
     def dashboard():
         return (STATIC / "dashboard.html").read_text(encoding="utf-8")
+
+    # ------------------------------------------------------- setup / demo / batch
+    demo_state = {"running": False, "sent": 0, "total": 0}
+
+    @app.get("/api/setup")
+    def setup():
+        labels = _demo_labels(cfg.demo_dir)
+        return dict(inbox=str(worker.inbox.resolve()), archive=str(worker.archive.resolve()),
+                    device=worker.status.device, calibration=worker.status.calibration,
+                    model_loaded=worker.status.model_loaded, load_error=worker.status.load_error,
+                    operating_point=worker.operating_point, demo_count=len(labels), demo=demo_state,
+                    total_inspections=store.count() if hasattr(store, "count") else None,
+                    brand=dict(name=cfg.brand_name, color=cfg.brand_color, color2=cfg.brand_color_2,
+                               logo=bool(cfg.brand_logo and Path(cfg.brand_logo).exists())),
+                    note=cfg.note, line_name=cfg.line_name)
+
+    @app.get("/brand/logo")
+    def brand_logo():
+        if not cfg.brand_logo or not Path(cfg.brand_logo).exists():
+            raise HTTPException(404)
+        return FileResponse(cfg.brand_logo, headers={"Cache-Control": "max-age=3600"})
+
+    @app.post("/api/demo")
+    def demo():
+        labels = _demo_labels(cfg.demo_dir)
+        if not labels:
+            raise HTTPException(404, "No hay fotos de demostración")
+        if demo_state["running"]:
+            return demo_state
+        files = [cfg.demo_dir / "fotos" / a for a in labels if (cfg.demo_dir / "fotos" / a).exists()]
+        demo_state.update(running=True, sent=0, total=len(files), started=datetime.now().isoformat(timespec="seconds"))
+
+        def feed():  # behaves like a camera: writes .part and renames when complete
+            try:
+                for f in files:
+                    tmp = worker.inbox / (f.name + ".part")
+                    shutil.copyfile(f, tmp)
+                    tmp.replace(worker.inbox / f.name)
+                    demo_state["sent"] += 1
+                    time.sleep(1.5)
+            finally:
+                demo_state["running"] = False
+
+        threading.Thread(target=feed, daemon=True, name="demo-feed").start()
+        return demo_state
+
+    @app.get("/api/demo/result")
+    def demo_result():
+        labels = _demo_labels(cfg.demo_dir)
+        since = demo_state.get("started")
+        latest = {}
+        for r in reversed(store.recent(5000, since)):
+            if r["file"] in labels and r["decision"] != "ERROR":
+                latest[r["file"]] = r
+        out = dict(tp=0, fn=0, fp=0, tn=0, n=len(latest), total=len(labels), items=[])
+        for f, r in latest.items():
+            real = labels[f]["real"].strip().upper().replace("_", " ")
+            pred = r["decision"]
+            key = ("tp" if pred == "NO OK" else "fn") if real == "NO OK" else ("fp" if pred == "NO OK" else "tn")
+            out[key] += 1
+            out["items"].append(dict(id=r["id"], file=f, real=real, pred=pred, tipo=labels[f].get("tipo", ""),
+                                     correct=key in ("tp", "tn")))
+        return out
+
+    @app.post("/api/batch")
+    def batch(body: dict = Body(...)):
+        folder = Path(str(body.get("folder", "")).strip().strip('"'))
+        if not str(folder) or not folder.is_dir():
+            raise HTTPException(404, f"No existe la carpeta: {folder}")
+        files = sorted(p for p in folder.iterdir() if p.suffix.lower() in IMAGE_EXT)
+        if not files:
+            raise HTTPException(422, "La carpeta no tiene fotos (.jpg, .png, .bmp, .tif)")
+        for p in files:
+            worker.submit(p, move=False)  # originals stay where they are; a copy goes to the archive
+        return dict(queued=len(files), folder=str(folder))
 
     # -------------------------------------------------------------------- api
     @app.get("/api/health")
@@ -230,7 +325,8 @@ def _summary(store: Store, worker: InspectionWorker, cfg: ServiceConfig, window:
                            detail=f"Última inspección {datetime.fromisoformat(last):%H:%M}. ¿Línea detenida o cámara sin guardar fotos?"))
     if not worker.is_alive():
         alerts.append(dict(level="critical", title="El servicio de inspección está detenido",
-                           detail="Reiniciar scripts/serve.py."))
+                           detail=(f"No se pudieron cargar los modelos: {worker.status.load_error}" if worker.status.load_error
+                                   else "Cierre esta ventana y vuelva a iniciar el programa.")))
 
     confirmed_real = reviewed.get("defecto_real", 0)
     false_alarm = reviewed.get("falsa_alarma", 0)

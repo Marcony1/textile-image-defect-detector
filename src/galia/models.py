@@ -23,8 +23,16 @@ IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
+def has_gpu() -> bool:
+    """NVIDIA GPU usable? Set GALIA_DEVICE=cpu to force the CPU."""
+    import os
+    if os.environ.get("GALIA_DEVICE", "").lower() == "cpu":
+        return False
+    return torch.cuda.is_available() and torch.cuda.device_count() > 0
+
+
 def _device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cuda" if has_gpu() else "cpu")
 
 
 def _to_tensor(tiles: list[np.ndarray], device) -> torch.Tensor:
@@ -47,7 +55,7 @@ class YoloTilePredictor:
 
         self.model = YOLO(str(weights))
         self.conf, self.batch, self.use_roi = conf, batch, use_roi
-        self.device = 0 if torch.cuda.is_available() else "cpu"
+        self.device = 0 if has_gpu() else "cpu"
 
     def __call__(self, img: np.ndarray) -> TowelResult:
         H, W = img.shape[:2]
@@ -61,7 +69,7 @@ class YoloTilePredictor:
             # ultralytics expects BGR numpy arrays
             res = self.model.predict([crop(img, w, C.YOLO_TILE)[..., ::-1] for w in chunk],
                                      imgsz=C.YOLO_TILE, conf=self.conf, device=self.device,
-                                     verbose=False, half=torch.cuda.is_available())
+                                     verbose=False, half=has_gpu())
             for w, r in zip(chunk, res):
                 if len(r.boxes):
                     b = r.boxes.data.cpu().numpy()  # x1,y1,x2,y2,conf,cls

@@ -29,8 +29,13 @@ def main():
     ap.add_argument("--db", default=str(base / "inspecciones.db"))
     ap.add_argument("--models", default=str(C.MODELS_DIR))
     ap.add_argument("--operating-point", default="recall_98", choices=["recall_90", "recall_95", "recall_98"])
-    ap.add_argument("--scale", type=float, default=1.0,
-                    help="1.0 para la cámara de junio 2025 (3580x2150); 0.62 para la de abril (5120x5120)")
+    ap.add_argument("--scale", type=float, default=None,
+                    help="escala de la foto; por defecto la de models/calibracion.json o 1.0 (cámara de junio 2025)")
+    ap.add_argument("--demo-dir", default=None, help="carpeta con fotos/ y etiquetas.csv para la demostración")
+    ap.add_argument("--brand-name", default="")
+    ap.add_argument("--brand-logo", default=None)
+    ap.add_argument("--brand-color", default="", help="color principal #rrggbb")
+    ap.add_argument("--brand-color-2", default="", help="color secundario #rrggbb")
     ap.add_argument("--line-name", default="Línea 1")
     ap.add_argument("--streak-alert", type=int, default=5, help="NO OK seguidas que disparan alerta")
     ap.add_argument("--rate-alert", type=float, default=0.5, help="fracción NO OK (últimas 50) que dispara alerta")
@@ -42,7 +47,10 @@ def main():
     store = Store(args.db)
     worker = InspectionWorker(store, Path(args.inbox), Path(args.archive), Path(args.models),
                               args.operating_point, args.scale)
-    cfg = ServiceConfig(line_name=args.line_name, streak_alert=args.streak_alert, rate_alert=args.rate_alert)
+    cfg = ServiceConfig(line_name=args.line_name, streak_alert=args.streak_alert, rate_alert=args.rate_alert,
+                        demo_dir=Path(args.demo_dir) if args.demo_dir else None, brand_name=args.brand_name,
+                        brand_logo=Path(args.brand_logo) if args.brand_logo else None,
+                        brand_color=args.brand_color, brand_color_2=args.brand_color_2)
     app = create_app(store, worker, cfg)
     print(f"Tablero: http://{'localhost' if args.host in ('127.0.0.1', '0.0.0.0') else args.host}:{args.port}")
     print(f"Carpeta de entrada: {args.inbox}")

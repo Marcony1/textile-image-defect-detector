@@ -44,11 +44,14 @@ class WorkerStatus:
     errors: int = 0
     queue: int = 0
     model_loaded: bool = False
+    device: str = ""
+    calibration: str = ""
+    load_error: str | None = None
 
 
 class InspectionWorker(threading.Thread):
     def __init__(self, store: Store, inbox: Path, archive: Path, models_dir: Path = C.MODELS_DIR,
-                 operating_point: str = "recall_98", scale: float = 1.0, poll_s: float = 0.5,
+                 operating_point: str = "recall_98", scale: float | None = None, poll_s: float = 0.5,
                  on_result=None):
         super().__init__(daemon=True, name="inspection-worker")
         self.store, self.inbox, self.archive = store, Path(inbox), Path(archive)
@@ -78,7 +81,23 @@ class InspectionWorker(threading.Thread):
     # -------------------------------------------------------------------- loop
     def run(self):
         log.info("loading models from %s (operating point %s)", self.models_dir, self.operating_point)
-        self.inspector = TowelInspector.from_dir(self.models_dir, self.operating_point)
+        try:
+            self.inspector = TowelInspector.from_dir(self.models_dir, self.operating_point)
+        except Exception as e:
+            log.exception("could not load models")
+            self.status.load_error = f"{type(e).__name__}: {e}"
+            return
+        if self.scale is None:
+            self.scale = self.inspector.default_scale
+        from ..models import has_gpu
+        if has_gpu():
+            import torch
+            self.status.device = "GPU · " + torch.cuda.get_device_name(0)
+        else:
+            self.status.device = "CPU (sin tarjeta gráfica NVIDIA: más lento)"
+        cal = self.inspector.calibration
+        self.status.calibration = (f"{cal['capture']} · {cal['n_photos']} fotos · {cal['date'][:10]} · escala {self.scale:.2f}"
+                                   if cal else f"de fábrica (cámara de junio 2025) · escala {self.scale:.2f}")
         self.status.model_loaded = True
         log.info("models loaded; watching %s", self.inbox)
         while not self._halt.is_set():

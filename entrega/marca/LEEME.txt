@@ -1,0 +1,3 @@
+Ponga aquí el logo de la empresa (PNG con fondo transparente, SVG o JPG) con el nombre
+logo.png, o cambie la línea "logo =" en configuracion.ini.
+Los colores se configuran en configuracion.ini, sección [marca].

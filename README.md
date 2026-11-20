@@ -141,6 +141,14 @@ python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --li
 
 Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/reportes/`](docs/reportes/).
 
+### Paquete para la prueba en planta
+
+```bash
+python scripts/build_delivery.py      # -> dist/Inspector_Toallas/ y dist/Inspector_Toallas.zip (~120 MB)
+```
+
+Carpeta autocontenida para alguien sin experiencia en IA: `INSTALAR.bat` (crea un entorno de Python e instala PyTorch con GPU o CPU), `INICIAR.bat` (servicio + tablero; panel **Cómo empezar** con demostración, análisis de una carpeta y la ruta para conectar la cámara), `CALIBRAR.bat` (calibración con fotos de toallas buenas), `configuracion.ini` (carpetas, punto de operación, logo y colores de la empresa), `camara/capturar.py` (Raspberry Pi o cámara USB, con disparo por tecla, intervalo o sensor GPIO; entrega por carpeta o por HTTP), una demo de 24 toallas de test con su respuesta correcta y `LEEME.pdf` con las instrucciones. Las plantillas están en [`entrega/`](entrega/).
+
 ### Inferencia por lotes
 
 ```bash
@@ -160,9 +168,14 @@ res["decision"], res["score"], res["defects"]
 
 **Puntos de operación** (`recall_90`, `recall_95`, `recall_98`): el umbral se fija en validación para alcanzar ese recall de toallas NO OK. Un punto más alto detecta más defectos, pero genera más falsas alarmas. El valor por defecto es `recall_98`, porque la prioridad es no dejar pasar defectos.
 
-> **Calibración por cámara:** la escala de los scores depende de la cámara (luz, fondo, sensor). Las toallas OK de junio reciben scores más altos que las de abril, así que con un umbral global casi todas saldrían como NO OK. Por eso cada score se normaliza contra las toallas OK de validación de su cámara, y en producción se usa la calibración de junio 2025. **Si cambia la cámara o la iluminación, hay que recalibrar** con unas decenas de fotos OK (y, de preferencia, algunas NO OK) volviendo a correr `08_evaluate.py`.
+> **Calibración por cámara:** la escala de los scores depende de la cámara (luz, fondo, sensor). Las toallas OK de junio reciben scores más altos que las de abril, así que con un umbral global casi todas saldrían como NO OK. Por eso cada score se normaliza contra las toallas OK de su cámara; de fábrica se usa la de junio 2025. **Si cambia la cámara o la iluminación, hay que recalibrar** con 30–60 fotos de toallas buenas:
 >
-> Las fotos de producción deben tener la escala de la cámara de junio 2025 (≈3580×2150). Si la cámara cambia de resolución o distancia, use `--scale` para que un milímetro de tela ocupe los mismos píxeles.
+> ```python
+> from galia.calibration import calibrate
+> calibrate("fotos_toallas_buenas/", "models")   # escribe models/calibracion.json
+> ```
+>
+> `calibrate` estima la **escala** con el tamaño de la etiqueta de la toalla (YOLO la mide en ~99 px en la cámara de junio) y la **línea base** de scores con esas toallas buenas. `TowelInspector` y el servicio usan `calibracion.json` automáticamente; bórrelo para volver a la calibración de fábrica. También puede forzarse la escala con `--scale`.
 
 ---
 
@@ -173,6 +186,8 @@ src/galia/          código reutilizable (config, datos, recortes, máscara, mod
 scripts/04-08       construcción del dataset, entrenamiento y evaluación
 scripts/predict.py  inferencia por lotes
 scripts/serve.py    servicio de línea + tablero en vivo (src/galia/service/)
+scripts/build_delivery.py  arma el paquete para la empresa (dist/Inspector_Toallas.zip)
+entrega/            plantillas del paquete: instaladores, configuracion.ini, LEEME, captura con Raspberry Pi
 notebooks/05-09     análisis y visualizaciones del pipeline v2
 notebooks/01-04     modelos históricos (v1), se conservan como referencia
 reports/            métricas (metrics.md / metrics.json) y scores por toalla

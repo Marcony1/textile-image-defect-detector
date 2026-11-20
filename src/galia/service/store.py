@@ -103,6 +103,10 @@ class Store:
         with self._conn() as c:
             return [self._row(r) for r in c.execute(q, args).fetchall()]
 
+    def count(self) -> int:
+        with self._conn() as c:
+            return c.execute("SELECT COUNT(*) FROM inspections").fetchone()[0]
+
     def rows_since(self, since: str) -> list[dict]:
         with self._conn() as c:
             return [dict(r) for r in c.execute(
