@@ -1,7 +1,9 @@
 """Arma la carpeta de entrega para la empresa: programa + modelos + demo + instrucciones.
 
-    python scripts/build_delivery.py                # -> dist/Inspector_Toallas/ y dist/Inspector_Toallas.zip
-    python scripts/build_delivery.py --n-demo 30 --no-zip
+    python scripts/build_delivery.py                # -> dist/Inspector_Toallas.zip (lo único que se entrega)
+    python scripts/build_delivery.py --carpeta      # además deja la carpeta descomprimida en dist/Inspector_Toallas
+
+Se arma en una carpeta temporal, así nunca choca con una copia abierta o instalada en dist/.
 
 La demo usa toallas del split de TEST de la cámara de producción (junio 2025),
 que ningún modelo vio al entrenar; etiquetas.csv guarda la respuesta correcta.
@@ -12,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import date
 
 import pandas as pd
@@ -53,7 +56,7 @@ def build_pdf(html: Path, pdf: Path):
     if not Path(EDGE).exists():
         print("  (Edge no encontrado: solo se genera el HTML)")
         return
-    prof = ROOT / "dist" / ".edgeprof"
+    prof = Path(tempfile.gettempdir()) / "galia_edgeprof"
     subprocess.run([EDGE, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-pdf-header-footer",
                     f"--print-to-pdf={pdf}", html.resolve().as_uri()], timeout=120,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -61,15 +64,15 @@ def build_pdf(html: Path, pdf: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(ROOT / "dist" / "Inspector_Toallas"))
     ap.add_argument("--n-demo", type=int, default=24)
     ap.add_argument("--seed", type=int, default=11)
-    ap.add_argument("--no-zip", action="store_true")
+    ap.add_argument("--carpeta", action="store_true", help="dejar también la carpeta descomprimida en dist/")
     args = ap.parse_args()
-    out = Path(args.out)
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True)
+    dist = ROOT / "dist"
+    dist.mkdir(exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix="galia_entrega_"))
+    out = staging / "Inspector_Toallas"
+    out.mkdir()
 
     # programa
     print("programa…")
@@ -129,10 +132,17 @@ def main():
     build_pdf(out / "LEEME.html", out / "LEEME.pdf")
 
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file()) / 1e6
-    print(f"listo: {out} ({size:.0f} MB)")
-    if not args.no_zip:
-        z = shutil.make_archive(str(out), "zip", out.parent, out.name)
-        print(f"zip: {z} ({Path(z).stat().st_size / 1e6:.0f} MB)")
+    z = Path(shutil.make_archive(str(staging / "Inspector_Toallas"), "zip", staging, out.name))
+    final = dist / "Inspector_Toallas.zip"
+    shutil.move(str(z), final)
+    print(f"zip: {final} ({final.stat().st_size / 1e6:.0f} MB; {size:.0f} MB descomprimido)")
+    if args.carpeta:
+        dst = dist / "Inspector_Toallas"
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(out, dst)
+        print(f"carpeta: {dst}")
+    shutil.rmtree(staging, ignore_errors=True)
 
 
 if __name__ == "__main__":
