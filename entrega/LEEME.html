@@ -69,7 +69,7 @@ Se crean al usarlo:
 <h2 id="s3">3. Instalación (una sola vez)</h2>
 <ol>
 <li><b>Instale Python 3.11</b> si no lo tiene (también sirven 3.10 o 3.12, y el Python de Anaconda o Miniconda: INSTALAR lo encuentra solo): <code>https://www.python.org/downloads/release/python-3119/</code> → "Windows installer (64-bit)". Durante la instalación <b>marque "Add python.exe to PATH"</b>.</li>
-<li>Copie la carpeta <code>Inspector_Toallas</code> a un disco local, por ejemplo <code>C:\Inspector_Toallas</code>. Evite OneDrive o el escritorio sincronizado.</li>
+<li>Descomprima el zip en un disco local, por ejemplo <code>C:\Inspector_Toallas</code>. Evite OneDrive o el escritorio sincronizado (funciona, pero OneDrive sincronizaría todas las fotos de la línea).</li>
 <li>Haga doble clic en <code>INSTALAR.bat</code>. Necesita internet y tarda de 5 a 20 minutos. Detecta solo si hay tarjeta NVIDIA. Al final debe decir <i>"Instalación terminada"</i>.</li>
 </ol>
 <p>Linux (Ubuntu): <code>sudo apt install python3.11 python3.11-venv</code> y luego <code>bash instalar.sh</code>.</p>
@@ -130,7 +130,7 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <p>Para el modo sensor, conecte la salida del sensor (contacto seco o salida NPN a través de un optoacoplador) entre el pin GPIO indicado (numeración BCM) y GND. <b>No conecte señales de 24 V directamente a la Pi.</b> Use <code>--retraso</code> para esperar a que la toalla quede quieta. Para que arranque sola al encender la Pi, agregue el comando a <code>crontab -e</code> con <code>@reboot</code>.</p>
 
 <h3>Opción C · Cámara USB conectada a la misma PC</h3>
-<pre>entorno\Scripts\python.exe camara\capturar.py --fuente usb --carpeta entrada --modo tecla</pre>
+<pre>%LOCALAPPDATA%\InspectorToallas\entorno\Scripts\python.exe camara\capturar.py --fuente usb --carpeta entrada --modo tecla</pre>
 <p>Use <code>--usb 1</code> si hay más de una cámara y <code>--ancho 3840 --alto 2160</code> para la máxima resolución. Las cámaras web comunes suelen dar menos detalle que una cámara industrial: los defectos pequeños pueden no verse.</p>
 
 <h3>Recomendaciones para la foto</h3>
@@ -174,6 +174,7 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <table>
 <tr><th>Problema</th><th>Solución</th></tr>
 <tr><td>INSTALAR dice que no encuentra Python</td><td>Instale Python 3.11 marcando "Add python.exe to PATH" y vuelva a ejecutar INSTALAR. Python 3.13 o más nuevo todavía no es compatible: instale 3.11 además del que ya tiene (pueden convivir).</td></tr>
+<tr><td>Error "No such file or directory" o "Long Path" al instalar</td><td>Ruta demasiado larga. Esta versión ya instala en una ruta corta; si aparece, copie la carpeta a <code>C:\Inspector_Toallas</code> y vuelva a ejecutar INSTALAR.</td></tr>
 <tr><td>INSTALAR falla a la mitad</td><td>Normalmente es la conexión a internet. Vuelva a ejecutarlo: continúa donde se quedó.</td></tr>
 <tr><td>El navegador no se abre</td><td>Ábralo usted y escriba <code>http://localhost:8000</code>.</td></tr>
 <tr><td>"No se pudo abrir el puerto 8000"</td><td>Ya hay otro INICIAR abierto. Ciérrelo, o cambie <code>puerto</code> en la configuración.</td></tr>

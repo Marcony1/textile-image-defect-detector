@@ -36,12 +36,23 @@ echo [1/4] Python encontrado: %PYEXE%
 set "PY="%PYEXE%""
 
 rem ---- 2. Entorno propio del programa (no modifica otros programas)
-if not exist "entorno\Scripts\python.exe" (
-  %PY% -m venv entorno || goto error
+rem Se crea en una ruta corta y fija: PyTorch trae archivos con nombres muy largos y Windows
+rem no acepta rutas de mas de 260 caracteres (falla si la carpeta esta en OneDrive o muy anidada).
+set "ENTORNO=%LOCALAPPDATA%\InspectorToallas\entorno"
+echo %~dp0 | findstr /i "OneDrive" >nul && (
+  echo.
+  echo AVISO: esta carpeta esta dentro de OneDrive. Funciona, pero se recomienda
+  echo copiarla a un disco local, por ejemplo C:\Inspector_Toallas, para que OneDrive
+  echo no sincronice las fotos de la linea.
+  echo.
 )
-set "VPY=%~dp0entorno\Scripts\python.exe"
+if exist "%ENTORNO%" if not exist "%ENTORNO%\Scripts\python.exe" rmdir /s /q "%ENTORNO%"
+if not exist "%ENTORNO%\Scripts\python.exe" (
+  %PY% -m venv "%ENTORNO%" || goto error
+)
+set "VPY=%ENTORNO%\Scripts\python.exe"
 "%VPY%" -m pip install --upgrade pip --quiet || goto error
-echo [2/4] Entorno creado en la carpeta "entorno"
+echo [2/4] Entorno listo en %ENTORNO%
 
 rem ---- 3. PyTorch: version para tarjeta NVIDIA o para procesador
 nvidia-smi >nul 2>nul
