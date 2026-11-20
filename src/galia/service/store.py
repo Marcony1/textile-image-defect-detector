@@ -80,6 +80,29 @@ class Store:
                             (label, note, datetime.now().isoformat(timespec="seconds"), iid))
             return cur.rowcount == 1
 
+    def delete_files(self, files: set[str]) -> list[dict]:
+        """Delete the inspections of these file names (e.g. the demo photos). Returns the deleted rows."""
+        if not files:
+            return []
+        marks = ",".join("?" * len(files))
+        with self._conn() as c:
+            rows = [dict(r) for r in c.execute(f"SELECT * FROM inspections WHERE file IN ({marks})", list(files))]
+            c.execute(f"DELETE FROM inspections WHERE file IN ({marks})", list(files))
+        return rows
+
+    def backup_and_clear(self, backup: Path) -> int:
+        """Copy the whole history to ``backup`` (a valid SQLite file) and start an empty one."""
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        with self._conn() as c:
+            n = c.execute("SELECT COUNT(*) FROM inspections").fetchone()[0]
+            dst = sqlite3.connect(backup)
+            try:
+                c.backup(dst)
+            finally:
+                dst.close()
+            c.execute("DELETE FROM inspections")
+        return n
+
     # ------------------------------------------------------------------- reads
     @staticmethod
     def _row(r: sqlite3.Row) -> dict:

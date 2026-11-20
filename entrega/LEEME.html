@@ -35,7 +35,8 @@ h2 { break-before: auto; }
 <a href="#s9">9. Qué enviarnos al terminar</a><br>
 <a href="#s10">10. Configuración</a><br>
 <a href="#s11">11. Problemas comunes</a><br>
-<a href="#s12">12. Para programadores</a>
+<a href="#s12">12. Para programadores</a><br>
+<a href="#s13">13. Guía del tablero, elemento por elemento</a>
 </div>
 
 <h2 id="s1">1. Qué hay en la carpeta</h2>
@@ -55,6 +56,7 @@ h2 { break-before: auto; }
 Se crean al usarlo:
 ├── entrada/                ← la cámara deja aquí las fotos nuevas
 ├── procesadas/AAAA-MM-DD/OK, NO_OK, errores, previews
+├── etiquetas/              ← fotos etiquetadas en el tablero (para mejorar el modelo)
 └── datos/inspecciones.db   ← historial de todas las inspecciones</div>
 
 <h2 id="s2">2. Qué computadora usar</h2>
@@ -146,6 +148,8 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <li><b>Confirme cada NO OK</b> en la pantalla: <b>Defecto real</b> (tecla D) o <b>Falsa alarma</b> (tecla F). Si una toalla salió OK pero tenía defecto, selecciónela y marque <b>Tenía defecto</b> (X). Esto es lo más valioso de la prueba: mide qué tan bien funciona en la realidad.</li>
 <li>La pantalla muestra los totales del turno, el % de NO OK, toallas por hora y tipos de defecto, y avisa si hay muchas NO OK seguidas, fotos dañadas o la línea sin actividad.</li>
 <li><b>Exportar CSV</b> descarga el reporte del periodo (se abre en Excel).</li>
+<li><b>Etiquetar</b> (tecla E): en las falsas alarmas y en los defectos que se escaparon, marque dónde está el defecto (o guarde sin cajas si la toalla está bien). Es lo que más ayuda a mejorar el sistema (sección 13.4).</li>
+<li>Antes de empezar la prueba real: <b>Cómo empezar → Borrar demostración</b>, para que los resultados de la demo no se mezclen con los de la línea.</li>
 <li><b>Exigencia</b> (botón arriba a la derecha): un control deslizante para que el sistema sea más o menos estricto. Al moverlo muestra el efecto estimado (qué % de defectos detecta y qué % de toallas buenas manda a revisión); el cambio se aplica con <b>Aplicar</b>, vale para las toallas siguientes y se conserva al reiniciar. <b>Volver al recomendado</b> regresa al ajuste de fábrica. Recomendamos no moverlo durante los primeros días de la prueba, y anotar la fecha si se cambia.</li>
 <li>Puede ver la pantalla desde otra PC de la planta con <code>permitir_red = si</code>. No la publique en internet: no tiene contraseña.</li>
 </ul>
@@ -154,7 +158,8 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <ol>
 <li>El CSV de todo el periodo (botón Exportar CSV, periodo "Últimos 7 días" o el que corresponda).</li>
 <li>La carpeta <code>procesadas</code> completa, o al menos las carpetas <code>NO_OK</code> y las fotos marcadas como "Tenía defecto".</li>
-<li>El archivo <code>datos/inspecciones.db</code> y <code>modelos/calibracion.json</code>.</li>
+<li>El archivo <code>datos/inspecciones.db</code> (y los respaldos de <code>datos/respaldos/</code>, si los hay) y <code>modelos/calibracion.json</code>.</li>
+<li>El zip de <b>Exportar etiquetas</b> (Cómo empezar → tarjeta 4), si etiquetaron fotos.</li>
 <li>Una descripción breve de la instalación: cámara, lente, distancia, iluminación (de ser posible una foto de la estación) y cualquier cambio durante la prueba.</li>
 </ol>
 <p>Con esto mediremos el desempeño real y prepararemos la siguiente versión. Probablemente pediremos fotos con otras condiciones de iluminación para hacer el sistema más robusto.</p>
@@ -195,6 +200,79 @@ GET  /api/events                 eventos en vivo (Server-Sent Events)
 
 curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <p>Para separar toallas automáticamente (PLC, actuador), lea la decisión de <code>/api/inspect</code> o de <code>/api/events</code>. Recomendamos hacerlo solo después de validar el desempeño en la prueba.</p>
+
+
+<h2 id="s13" class="pb">13. Guía del tablero, elemento por elemento</h2>
+<p>El tablero se abre en el navegador con <code>INICIAR</code> (<code>http://localhost:8000</code>). Se actualiza solo cada vez que llega una foto; no hace falta recargar la página.</p>
+
+<h3>13.1 Pantalla principal</h3>
+<figure><img src="{{IMG:guia_tablero.png}}" alt="Pantalla principal del tablero con 21 elementos numerados"><figcaption>Pantalla principal. Los números corresponden a la tabla siguiente.</figcaption></figure>
+<table>
+<tr><th class="n">#</th><th>Elemento</th><th>Qué muestra y cómo se usa</th></tr>
+<tr><td class="n">1</td><td>Logo y línea</td><td>Logo y colores de la empresa (sección <code>[marca]</code> de la configuración) y el nombre de la línea.</td></tr>
+<tr><td class="n">2</td><td>Ajuste activo</td><td>"Punto de operación recall 95 %" = ajuste recomendado; "Exigencia personalizada" si se movió el control (5). Muestra el umbral y desde cuándo se cuentan los datos del periodo.</td></tr>
+<tr><td class="n">3</td><td>Conexión</td><td>Verde "En vivo": la pantalla recibe las toallas al instante. Rojo: se perdió la conexión con el programa (¿se cerró la ventana de INICIAR?); se reconecta sola.</td></tr>
+<tr><td class="n">4</td><td>Periodo</td><td>Qué datos se cuentan en indicadores y gráficas: turno (últimas 8 h), hoy, últimas 24 h o 7 días.</td></tr>
+<tr><td class="n">5</td><td>Exigencia</td><td>Abre el control para hacer la detección más o menos estricta (13.2). Dice "personalizada" si no está en el ajuste recomendado.</td></tr>
+<tr><td class="n">6</td><td>Cómo empezar</td><td>Panel con la demostración, análisis de una carpeta, ruta de la cámara, historial y etiquetas (13.3).</td></tr>
+<tr><td class="n">7</td><td>Exportar CSV</td><td>Descarga el reporte del periodo elegido en (4); se abre en Excel. Una fila por toalla: hora, archivo, decisión, score, umbral, tipo de defecto, revisión del operador.</td></tr>
+<tr><td class="n">8</td><td>Sonido</td><td>Pitido cada vez que una toalla sale NO OK. Se recuerda en esa computadora.</td></tr>
+<tr><td class="n">9</td><td>Avisos</td><td><b>Rojo</b>: varias NO OK seguidas (revisar máquina, lote o cámara) o el programa detenido. <b>Amarillo</b>: % de NO OK alto o fotos dañadas. <b>Azul</b>: no llegan fotos (¿línea detenida o cámara sin guardar?). Durante la demostración el aviso de % alto es normal.</td></tr>
+<tr><td class="n">10</td><td>Toallas inspeccionadas</td><td>Total del periodo. Si hubo fotos con error, se indica abajo.</td></tr>
+<tr><td class="n">11</td><td>NO OK / OK</td><td>Cuántas toallas se mandaron a revisión y cuántas pasaron, con su porcentaje.</td></tr>
+<tr><td class="n">12</td><td>Ritmo</td><td>Toallas por hora, calculado con los últimos 15 minutos.</td></tr>
+<tr><td class="n">13</td><td>Tiempo de análisis</td><td>Segundos promedio por foto. ≈ 1 s con tarjeta gráfica; 8–15 s sin ella.</td></tr>
+<tr><td class="n">14</td><td>NO OK sin revisar</td><td>Toallas NO OK que el operador todavía no confirmó (17).</td></tr>
+<tr><td class="n">15</td><td>Foto de la toalla</td><td>La última toalla (o la que se elija en la lista 18) con su decisión. En las NO OK, la <b>mancha de color</b> marca la zona sospechosa y los <b>recuadros</b> los defectos que el sistema reconoce con su tipo. "Seguir la última" vuelve a mostrar cada toalla nueva.</td></tr>
+<tr><td class="n">16</td><td>Datos de la toalla</td><td>Archivo, <b>score</b> (qué tan sospechosa es) y una barra con la marca negra del <b>umbral</b>: a la derecha de la marca = NO OK. Abajo, los tipos de defecto encontrados con su confianza.</td></tr>
+<tr><td class="n">17</td><td>Revisión del operador</td><td>En NO OK: <b>Defecto real</b> (tecla D) o <b>Falsa alarma</b> (F). En OK: <b>OK correcto</b> (O) o <b>Tenía defecto</b> (X). <b>Etiquetar</b> (E) abre el editor para marcar dónde está el defecto (13.4).</td></tr>
+<tr><td class="n">18</td><td>Últimas inspecciones</td><td>Las 100 toallas más recientes: hora, decisión, tipo de defecto y estado de revisión. Clic en una para verla en (15). Con el teclado: Tab para moverse y Enter para abrir.</td></tr>
+<tr><td class="n">19</td><td>Toallas por hora</td><td>Barras de OK (verde) y NO OK (rojo) por hora (por día en "7 días"). Pase el ratón sobre una barra para ver los números.</td></tr>
+<tr><td class="n">20</td><td>Tipo de defecto</td><td>Qué defectos aparecen más en las NO OK. "Sin tipo" = el sistema vio algo raro pero no lo pudo clasificar.</td></tr>
+<tr><td class="n">21</td><td>Revisión del operador</td><td>Resumen de las confirmaciones: defectos reales, falsas alarmas, <b>precisión observada</b> (de las NO OK revisadas, cuántas eran defecto real) y defectos no detectados reportados.</td></tr>
+</table>
+
+<h3>13.2 Exigencia de la detección</h3>
+<figure><img src="{{IMG:guia_exigencia.png}}" alt="Panel de exigencia con control deslizante, estimaciones y curva"><figcaption>Panel "Exigencia" (botón 5 de la pantalla principal).</figcaption></figure>
+<table>
+<tr><th class="n">#</th><th>Elemento</th><th>Qué hace</th></tr>
+<tr><td class="n">1</td><td>Control deslizante</td><td>A la izquierda, menos toallas buenas a revisión pero se escapan más defectos; a la derecha, lo contrario. Las marcas indican el ajuste recomendado y los puntos de 90 % y 98 %.</td></tr>
+<tr><td class="n">2</td><td>Efecto estimado</td><td>Para la posición elegida: % de toallas con defecto que se detectan, cuántas de cada 100 se escaparían y % de toallas buenas que van a revisión.</td></tr>
+<tr><td class="n">3</td><td>Lo que se gana y lo que cuesta</td><td>Cada punto de la línea es una posición del control. El punto naranja es la posición elegida; el círculo hueco, el ajuste activo. Más arriba = más defectos detectados; más a la derecha = más revisiones. A partir de cierto punto, cada defecto extra detectado cuesta muchas revisiones. Clic en la línea para elegir ese punto.</td></tr>
+<tr><td class="n">4</td><td>Aplicar</td><td>Activa el ajuste. Vale para las toallas que lleguen desde ese momento y se conserva al reiniciar. Cada inspección guarda el umbral con el que se decidió.</td></tr>
+<tr><td class="n">5</td><td>Volver al recomendado</td><td>Regresa al ajuste de fábrica (<code>ajuste</code> en la configuración).</td></tr>
+</table>
+<div class="box warn"><b>Las cifras son estimaciones</b>Se calcularon con 461 toallas de prueba de las cámaras de 2025. Con otra cámara o iluminación pueden variar; la prueba en la línea dará los valores reales. Recomendamos no mover el control los primeros días y anotar la fecha si se cambia.</div>
+
+<h3>13.3 Cómo empezar</h3>
+<figure><img src="{{IMG:guia_inicio.png}}" alt="Panel Cómo empezar con cuatro tarjetas numeradas"><figcaption>Panel "Cómo empezar" (botón 6). Arriba indica si el modelo está listo, si usa tarjeta gráfica, la calibración y el ajuste.</figcaption></figure>
+<table>
+<tr><th class="n">#</th><th>Tarjeta</th><th>Qué hace</th></tr>
+<tr><td class="n">1</td><td>Demostración</td><td>Manda las fotos de <code>demo/</code> como si llegaran de la cámara y compara la decisión con la respuesta correcta: aciertos, defectos detectados y escapados, falsas alarmas y lista de errores (clic para verlos).</td></tr>
+<tr><td class="n">2</td><td>Analizar una carpeta</td><td>Escriba o pegue una ruta (ej. <code>D:\Fotos\lote_12</code>) y pulse Analizar. Las fotos originales no se mueven.</td></tr>
+<tr><td class="n">3</td><td>Conectar la cámara</td><td>Ruta de la carpeta de entrada (botón <b>Copiar ruta</b>) y de la carpeta de procesadas (sección 7).</td></tr>
+<tr><td class="n">4</td><td>Historial y etiquetas</td><td><b>Borrar demostración</b>: quita los resultados de la demo (hágalo antes de la prueba real para que no se mezclen). <b>Empezar historial nuevo</b>: guarda una copia de respaldo en <code>datos/respaldos/</code> y deja el tablero en cero; las fotos de <code>procesadas/</code> no se borran. Ambos piden confirmación. Abajo, cuántas fotos hay etiquetadas por tipo de defecto y el botón <b>Exportar etiquetas (.zip)</b>.</td></tr>
+</table>
+
+<h3>13.4 Etiquetar defectos</h3>
+<p>Marcar <b>dónde</b> está cada defecto es lo que más ayuda a mejorar el sistema. Se abre con el botón <b>Etiquetar</b> (tecla E) de cualquier toalla. Conviene etiquetar sobre todo las <b>falsas alarmas</b> (guardando sin cajas) y los <b>defectos que se escaparon</b>.</p>
+<figure><img src="{{IMG:guia_etiquetar.png}}" alt="Editor de etiquetas con una caja dibujada"><figcaption>Editor de etiquetas.</figcaption></figure>
+<table>
+<tr><th class="n">#</th><th>Elemento</th><th>Qué hace</th></tr>
+<tr><td class="n">1</td><td>Tipo de defecto</td><td>Tipo de la próxima caja (y de la caja seleccionada). Atajo: teclas 1 a 7 (Etiqueta, Mancha, Hilo, Costura, Tejido, Teñido, Empalme). La <b>Etiqueta</b> de la toalla también se marca: sirve al sistema como referencia.</td></tr>
+<tr><td class="n">2</td><td>Sugerencias del sistema</td><td>Agrega como cajas los defectos que encontró el sistema. <b>Revíselas</b>: corrija su tamaño o tipo y borre las que no sean defecto.</td></tr>
+<tr><td class="n">3</td><td>Zoom</td><td>− / + / Ajustar (ver toda la foto). También rueda del ratón para acercar donde está el cursor, y Espacio + arrastrar (o clic derecho y arrastrar) para mover la vista.</td></tr>
+<tr><td class="n">4</td><td>Guardar / Cancelar</td><td>Guardar (Ctrl+S) escribe las etiquetas; Cancelar (Esc) sale y avisa si hay cambios sin guardar.</td></tr>
+<tr><td class="n">5</td><td>Lista de cajas</td><td>Cada caja con su color y tipo; se puede cambiar el tipo o borrarla (✕ o tecla Supr).</td></tr>
+<tr><td class="n">6</td><td>Nota</td><td>Comentario opcional, por ejemplo "mancha muy tenue" o "dudoso".</td></tr>
+<tr><td class="n">7</td><td>Caja</td><td>Arrastre sobre la foto para dibujarla, lo más ajustada posible al defecto. Clic para seleccionarla; arrástrela para moverla; tome una esquina para cambiar el tamaño.</td></tr>
+</table>
+<ul>
+<li>Una toalla guardada <b>sin cajas</b> queda como ejemplo de toalla buena: útil para las falsas alarmas.</li>
+<li>Las etiquetas se guardan en la carpeta <code>etiquetas/</code> (foto original + archivo de cajas + registro con fecha), en el formato que usa el sistema para entrenar. Volver a guardar una foto reemplaza sus etiquetas anteriores.</li>
+<li>Las fotos de la <b>demostración no se pueden etiquetar</b>: son fotos de prueba del sistema y deben quedar fuera del entrenamiento. Sirven para practicar con el editor.</li>
+<li>Al terminar la prueba, envíenos el archivo de <b>Exportar etiquetas</b> (sección 9).</li>
+</ul>
 
 <footer>Sistema en etapa de prueba: sus decisiones deben confirmarse por un inspector. Resultados medidos con fotos de la cámara de junio de 2025; el desempeño con otra cámara o iluminación debe medirse en la prueba.</footer>
 </body></html>

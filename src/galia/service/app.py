@@ -20,6 +20,11 @@ Endpoints (all JSON unless noted):
     GET  /brand/logo                logo file from the branding config
     GET  /api/threshold             current / recommended threshold and the operating curve
     POST /api/threshold             {"threshold": z} to change strictness, {"reset": true} to go back
+    POST /api/history/demo          delete the demo inspections (and their archived copies)
+    POST /api/history/new           back up the history database and start an empty one
+    GET  /api/inspections/{id}/image   original photo (full resolution) for the labeller
+    GET/POST/DELETE /api/labels/{id}   boxes drawn on that photo ({"boxes": [{cls,x1,y1,x2,y2}], "note"})
+    GET  /api/labels                counts per class;  GET /api/labels/export.zip  everything for retraining
 """
 from __future__ import annotations
 
@@ -38,6 +43,8 @@ from pathlib import Path
 from fastapi import Body, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 
+from .. import config as C
+from .labels import LabelStore
 from .store import REVIEW_LABELS, Store, window_start
 from .worker import IMAGE_EXT, InspectionWorker
 
@@ -59,6 +66,7 @@ class ServiceConfig:
     brand_color_2: str = ""        # secondary brand colour (#rrggbb)
     note: str = ""                 # free text shown in the setup panel
     settings_file: Path | None = None  # JSON where the dashboard strictness setting survives restarts
+    labels_dir: Path | None = None     # where the dashboard labeller saves photos + YOLO labels
 
 
 def _demo_labels(demo_dir: Path | None) -> dict:
@@ -142,6 +150,87 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
         state = threshold_state()
         broadcast("settings", {k: v for k, v in state.items() if k != "curve"})
         return state
+
+    # ------------------------------------------------------------------ history
+    def _remove_files(rows):
+        for r in rows:
+            for k in ("image_path", "preview_path"):
+                try:
+                    if r.get(k) and Path(r[k]).exists():
+                        Path(r[k]).unlink()
+                except OSError:
+                    pass
+
+    @app.post("/api/history/demo")
+    def clear_demo():
+        if demo_state["running"]:
+            raise HTTPException(409, "Espere a que termine la demostración")
+        rows = store.delete_files(set(_demo_labels(cfg.demo_dir)))
+        _remove_files(rows)  # archived copies of the demo photos (the originals stay in demo/)
+        labels.delete_by_photo(set(_demo_labels(cfg.demo_dir)))  # demo photos are TEST photos: never training labels
+        broadcast("reset", {"what": "demo", "deleted": len(rows)})
+        return dict(deleted=len(rows))
+
+    @app.post("/api/history/new")
+    def new_history():
+        backup = store.path.parent / "respaldos" / f"inspecciones_{datetime.now():%Y-%m-%d_%H%M%S}.db"
+        n = store.backup_and_clear(backup)
+        broadcast("reset", {"what": "all", "deleted": n})
+        return dict(deleted=n, backup=str(backup.resolve()))
+
+    # ------------------------------------------------------------------ labels
+    labels = LabelStore(cfg.labels_dir or (store.path.parent / "etiquetas"))
+
+    def _row_or_404(iid: int) -> dict:
+        r = store.get(iid)
+        if not r or not r.get("image_path") or r["decision"] == "ERROR":
+            raise HTTPException(404, "Inspección sin foto")
+        return r
+
+    @app.get("/api/inspections/{iid}/image")
+    def original_image(iid: int):
+        r = _row_or_404(iid)
+        f = labels._image_file(r)
+        if not f.exists():
+            raise HTTPException(404, "La foto original ya no está en la carpeta de procesadas")
+        return FileResponse(f, headers={"Cache-Control": "max-age=86400"})
+
+    @app.get("/api/labels")
+    def label_stats():
+        return labels.stats()
+
+    @app.get("/api/labels/export.zip")
+    def label_export():
+        dest = Path(labels.root).parent / f"etiquetas_{datetime.now():%Y%m%d_%H%M}.zip"
+        labels.export_zip(dest)
+        return FileResponse(dest, media_type="application/zip", filename=dest.name)
+
+    @app.get("/api/labels/{iid}")
+    def label_get(iid: int):
+        r = _row_or_404(iid)
+        out = labels.get(r)
+        out["suggestions"] = [dict(cls=d["cls"], x1=d["box"][0], y1=d["box"][1], x2=d["box"][2], y2=d["box"][3],
+                                   conf=d["conf"]) for d in (r.get("defects") or []) if d["conf"] >= 0.25]
+        out["classes"] = list(C.CLASSES)
+        return out
+
+    @app.post("/api/labels/{iid}")
+    def label_save(iid: int, body: dict = Body(...)):
+        r = _row_or_404(iid)
+        if r["file"] in _demo_labels(cfg.demo_dir):
+            raise HTTPException(422, "Las fotos de la demostración no se guardan: son fotos de prueba del modelo. "
+                                     "Úselas solo para practicar; etiquete fotos de su línea.")
+        try:
+            res = labels.save(r, body.get("boxes") or [], str(body.get("note", ""))[:500])
+        except (FileNotFoundError, ValueError, KeyError) as e:
+            raise HTTPException(422, str(e))
+        broadcast("labels", {"id": iid, **res})
+        return res
+
+    @app.delete("/api/labels/{iid}")
+    def label_delete(iid: int):
+        r = _row_or_404(iid)
+        return dict(deleted=labels.delete(r))
 
     # ------------------------------------------------------- setup / demo / batch
     demo_state = {"running": False, "sent": 0, "total": 0}

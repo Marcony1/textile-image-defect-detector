@@ -80,7 +80,7 @@ def main():
     (prog / "galia" / "service" / "static").mkdir(parents=True)
     for m in GALIA_MODULES:
         shutil.copy2(C.PROJECT_ROOT / "src" / "galia" / m, prog / "galia" / m)
-    for f in ["__init__.py", "app.py", "store.py", "worker.py"]:
+    for f in ["__init__.py", "app.py", "store.py", "worker.py", "labels.py"]:
         shutil.copy2(ROOT / "src" / "galia" / "service" / f, prog / "galia" / "service" / f)
     shutil.copy2(ROOT / "src" / "galia" / "service" / "static" / "dashboard.html", prog / "galia" / "service" / "static")
     for f in ["iniciar.py", "calibrar.py", "requirements.txt"]:
@@ -126,6 +126,10 @@ def main():
     print("instrucciones…")
     html = (ENTREGA / "LEEME.html").read_text(encoding="utf-8")
     html = html.replace("{{CSS}}", CSS.read_text(encoding="utf-8")).replace("{{N_DEMO}}", str(len(rows)))
+    import base64
+
+    html = re.sub(r"\{\{IMG:([^}]+)\}\}", lambda m: "data:image/png;base64," + base64.b64encode(
+        (ENTREGA / "guia" / m.group(1)).read_bytes()).decode(), html)
     meses = "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split()
     html = html.replace("{{FECHA}}", f"{meses[date.today().month - 1]} {date.today().year}")
     (out / "LEEME.html").write_text(html, encoding="utf-8")

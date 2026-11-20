@@ -78,7 +78,7 @@ def main():
                        demo_dir=demo if (demo / "etiquetas.csv").exists() else None,
                        brand_name=g("marca", "nombre"), brand_logo=logo,
                        brand_color=g("marca", "color_principal"), brand_color_2=g("marca", "color_secundario"),
-                       settings_file=datos / "ajuste.json")
+                       settings_file=datos / "ajuste.json", labels_dir=ROOT / "etiquetas")
     app = create_app(store, worker, sc)
     url = f"http://localhost:{puerto}"
     print(f"\n Tablero:            {url}")

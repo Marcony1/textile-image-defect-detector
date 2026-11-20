@@ -27,13 +27,14 @@
   --brand: #2a78d6;      /* replaced at runtime by the configured brand colour */
   --brand-ink: #ffffff;  /* text on --brand, chosen for contrast */
   --brand-2: #2a78d6;
+  --series: #2a78d6;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
     --text: #f0efec; --text-2: #c3c2b7; --text-3: #8a8984; --grid: #2a2a27;
-    --info: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
+    --info: #3987e5; --series: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
     --shadow: none;
   }
 }
@@ -41,10 +42,11 @@
   color-scheme: dark;
   --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
   --text: #f0efec; --text-2: #c3c2b7; --text-3: #8a8984; --grid: #2a2a27;
-  --info: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
+  --info: #3987e5; --series: #3987e5; --good-bg: #13291a; --critical-bg: #331a1a; --warning-bg: #332a14; --info-bg: #15243a;
   --shadow: none;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .wrap { max-width: 1600px; margin: 0 auto; padding: 16px clamp(16px, 2vw, 28px) 32px; }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 14px; }
@@ -174,6 +176,40 @@ button:disabled { opacity: .55; cursor: default; }
 .est b { display: block; font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .est span { color: var(--text-2); font-size: 12.5px; }
 .pill.custom { border-color: var(--brand-2); color: var(--text); }
+.curve { position: relative; margin: 6px 0 4px; max-width: 720px; }
+.curve-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.curve-sub { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+.curve svg { width: 100%; height: 230px; display: block; overflow: visible; }
+.curve text { fill: var(--text-3); font-size: 11px; }
+.curve text.ax { fill: var(--text-2); font-size: 11.5px; }
+.curve text.pm { fill: var(--text-2); font-size: 11px; }
+.curve .tip span { opacity: .75; font-size: 11px; }
+.strict-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
+.strict-grid .est { grid-template-columns: 1fr; margin-top: 4px; }
+@media (max-width: 900px) { .strict-grid { grid-template-columns: 1fr; } }
+.confirm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--warning-bg); font-size: 12.5px; }
+.confirm span { flex-basis: 100%; }
+button.danger { background: var(--critical); color: #fff; border-color: transparent; font-weight: 600; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.labeler { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.lab-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.lab-bar b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.lab-bar label { font-size: 13px; color: var(--text-2); display: flex; gap: 6px; align-items: center; }
+.lab-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 280px; min-height: 0; }
+@media (max-width: 800px) { .lab-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } }
+.lab-canvas { position: relative; min-height: 0; background: #111; touch-action: none; }
+.lab-canvas canvas { position: absolute; inset: 0; cursor: crosshair; }
+.lab-side { border-left: 1px solid var(--border); padding: 12px 14px; overflow-y: auto; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.lab-side h3 { margin: 0; font-size: 14px; }
+.lab-item { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 8px; cursor: pointer; }
+.lab-item.on { background: var(--info-bg); }
+.lab-item i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.35); }
+.lab-item select { font-size: 12.5px; padding: 3px 6px; }
+.lab-item button { padding: 2px 8px; }
+.lab-side textarea { font: inherit; font-size: 13px; min-height: 60px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--bg); color: var(--text); resize: vertical; }
+.keys { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+.keys .kbd { margin: 0 2px; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--text); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 60; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -214,10 +250,18 @@ button:disabled { opacity: .55; cursor: default; }
     <div class="setup-head"><h2>Exigencia de la detección</h2><span class="spacer"></span><button id="strict-close">Ocultar</button></div>
     <p class="help" style="margin-top:4px">Más exigente = se escapan menos defectos, pero más toallas buenas van a revisión. Mueva el control, revise el efecto estimado y pulse <b>Aplicar</b>. El cambio vale para las toallas que lleguen desde ese momento.</p>
     <div class="row"><span>Menos revisiones</span><div class="track"><input type="range" id="strict-range" min="0" max="40" step="1" aria-label="Exigencia"><div class="ticks" id="strict-ticks"></div></div><span>Detecta más</span></div>
-    <div class="est">
-      <div><b id="est-rec">–</b><span>de las toallas con defecto se detectan</span></div>
-      <div><b id="est-miss">–</b><span>de cada 100 con defecto se escaparían</span></div>
-      <div><b id="est-fa">–</b><span>de las toallas buenas van a revisión</span></div>
+    <div class="strict-grid">
+      <div class="est">
+        <div><b id="est-rec">–</b><span>de las toallas con defecto se detectan</span></div>
+        <div><b id="est-miss">–</b><span>de cada 100 con defecto se escaparían</span></div>
+        <div><b id="est-fa">–</b><span>de las toallas buenas van a revisión</span></div>
+      </div>
+      <div class="curve">
+        <div class="curve-title">Lo que se gana y lo que cuesta</div>
+        <div class="curve-sub">Cada punto de la línea es una posición del control. Más arriba se detectan más defectos; más a la derecha, más toallas buenas van a revisión.</div>
+        <svg id="curve-svg" role="img" aria-label="Defectos detectados contra toallas buenas enviadas a revisión para cada posición del control"></svg>
+        <div class="tip" id="curve-tip" hidden></div>
+      </div>
     </div>
     <div class="review" style="margin-top:0"><button class="primary" id="strict-apply">Aplicar</button><button id="strict-reset">Volver al recomendado</button><span class="msg" id="strict-msg" style="margin:0"></span></div>
     <p class="help" id="strict-note"></p>
@@ -248,6 +292,15 @@ button:disabled { opacity: .55; cursor: default; }
         <p>Las fotos ya analizadas se mueven a esta carpeta, separadas por fecha en <b>OK</b> y <b>NO_OK</b>:</p>
         <code id="archive">…</code>
         <p class="help">Antes de la prueba real en la línea, calibre el sistema con unas 30 fotos de toallas buenas de su cámara (programa CALIBRAR; vea las instrucciones).</p>
+      </div>
+      <div class="step">
+        <h3><span class="num">4</span>Historial y etiquetas</h3>
+        <p>Antes de empezar la prueba real, borre los resultados de la demostración para que no se mezclen.</p>
+        <div class="btnrow"><span><button id="hist-demo">Borrar demostración</button><div class="confirm" hidden></div></span><span><button id="hist-new">Empezar historial nuevo</button><div class="confirm" hidden></div></span></div>
+        <div class="msg" id="hist-msg"></div>
+        <p style="margin-top:12px">Fotos etiquetadas para mejorar el modelo (botón <b>Etiquetar</b> en cada toalla):</p>
+        <div class="msg" id="lab-stats" style="color:var(--text)">–</div>
+        <p style="margin-top:8px"><a class="btn" id="lab-export" href="/api/labels/export.zip" hidden>Exportar etiquetas (.zip)</a></p>
       </div>
     </div>
   </section>
@@ -295,6 +348,33 @@ button:disabled { opacity: .55; cursor: default; }
     </section>
   </div>
 </div>
+
+<div class="labeler" id="lab" hidden role="dialog" aria-modal="true" aria-label="Etiquetar defectos">
+  <div class="lab-bar">
+    <b id="lab-title">Etiquetar</b>
+    <label>Tipo de defecto <select id="lab-cls"></select></label>
+    <button id="lab-sugg" hidden>Agregar sugerencias del sistema</button>
+    <span class="btnrow"><button id="lab-zout" title="Alejar (−)">−</button><button id="lab-zin" title="Acercar (+)">+</button><button id="lab-fit" title="Ver toda la foto (F)">Ajustar</button></span>
+    <span class="spacer"></span>
+    <span class="msg" id="lab-msg" style="margin:0"></span>
+    <button id="lab-cancel">Cancelar</button>
+    <button class="primary" id="lab-save">Guardar</button>
+  </div>
+  <div class="lab-body">
+    <div class="lab-canvas" id="lab-wrap"><canvas id="lab-cv" aria-label="Foto de la toalla: arrastre para dibujar una caja"></canvas></div>
+    <aside class="lab-side">
+      <h3>Cajas <span id="lab-n"></span></h3>
+      <div id="lab-list"></div>
+      <div class="keys">
+        <b>Cómo usarlo</b><br>
+        Arrastre sobre la foto para dibujar una caja alrededor de cada defecto. Clic en una caja para seleccionarla; arrástrela para moverla o tome una esquina para cambiar su tamaño.<br>
+        <span class="kbd">1</span>…<span class="kbd">7</span> tipo · <span class="kbd">Supr</span> borrar caja · rueda del ratón: zoom · <span class="kbd">Espacio</span>+arrastrar o clic derecho: mover la vista · <span class="kbd">F</span> ver todo · <span class="kbd">Ctrl</span>+<span class="kbd">S</span> guardar · <span class="kbd">Esc</span> salir
+      </div>
+      <textarea id="lab-note" placeholder="Nota (opcional): ej. defecto difícil de ver, mancha muy tenue…" aria-label="Nota"></textarea>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -468,8 +548,10 @@ function renderReviewButtons(r) {
     ? [["defecto_real", "✓ Defecto real", "D"], ["falsa_alarma", "✕ Falsa alarma", "F"]]
     : [["ok_confirmado", "✓ OK correcto", "O"], ["defecto_no_detectado", "✕ Tenía defecto", "X"]];
   $("sel-review").innerHTML = `<span class="q">${r.decision === "NO OK" ? "¿Tiene defecto?" : "¿Está bien?"}</span>` +
-    opts.map(([k, l, key]) => `<button data-k="${k}" class="${r.review === k ? "sel" : ""}">${l}<span class="kbd">${key}</span></button>`).join("");
-  $("sel-review").querySelectorAll("button").forEach(b => b.addEventListener("click", () => sendReview(r.id, b.dataset.k)));
+    opts.map(([k, l, key]) => `<button data-k="${k}" class="${r.review === k ? "sel" : ""}">${l}<span class="kbd">${key}</span></button>`).join("") +
+    `<button id="lab-open" title="Marcar dónde está cada defecto para mejorar el modelo">✎ Etiquetar<span class="kbd">E</span></button>`;
+  $("sel-review").querySelectorAll("button[data-k]").forEach(b => b.addEventListener("click", () => sendReview(r.id, b.dataset.k)));
+  $("lab-open").addEventListener("click", () => openLabeler(r).catch(console.error));
 }
 async function sendReview(id, k) {
   try {
@@ -479,8 +561,9 @@ async function sendReview(id, k) {
   } catch (e) { console.error(e); }
 }
 document.addEventListener("keydown", e => {
-  if (!state.selected || ["SELECT", "INPUT", "TEXTAREA"].includes(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (lab.open || !state.selected || ["SELECT", "INPUT", "TEXTAREA"].includes(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
   const map = state.selected.decision === "NO OK" ? { d: "defecto_real", f: "falsa_alarma" } : { o: "ok_confirmado", x: "defecto_no_detectado" };
+  if (e.key.toLowerCase() === "e" && state.selected.decision !== "ERROR") { openLabeler(state.selected).catch(console.error); return; }
   const k = map[e.key.toLowerCase()]; if (k) sendReview(state.selected.id, k);
 });
 $("follow").addEventListener("click", () => { state.follow = true; if (state.rows.length) select(state.rows[0], true); });
@@ -503,6 +586,10 @@ function connect() {
       if (state.follow) select(m.data, true);
       if (m.data.decision === "NO OK") beep();
       if (!$("setup").hidden) loadDemoResult();
+    } else if (m.type === "reset") {
+      afterReset().catch(console.error);
+    } else if (m.type === "labels") {
+      if (!$("setup").hidden) loadLabelStats().catch(console.error);
     } else if (m.type === "settings") {
       if (!$("setup").hidden) loadSetup(false).catch(console.error);
       if (!$("strict").hidden) loadStrict().catch(console.error); else api("/api/threshold").then(st => { strict.state = st; $("strict-btn").textContent = st.custom ? "Exigencia: personalizada" : "Exigencia"; $("strict-btn").classList.toggle("custom", st.custom); });
@@ -571,6 +658,7 @@ async function loadSetup(first) {
   $("demo-btn").textContent = s.demo.running ? `Enviando ${s.demo.sent} de ${s.demo.total}…` : `Iniciar demostración (${s.demo_count} fotos)`;
   $("demo-btn").disabled = s.demo.running || !s.model_loaded;
   if (first && (s.total_inspections === 0 || location.hash === "#inicio")) { $("setup").hidden = false; loadDemoResult().catch(console.error); }
+  loadLabelStats().catch(console.error);
   if (!s.model_loaded && !s.load_error) setTimeout(() => loadSetup(false).catch(console.error), 2000);
   return s;
 }
@@ -665,7 +753,9 @@ function showEstimate(i) {
   $("strict-apply").disabled = !changed;
   $("strict-msg").textContent = changed ? "Sin aplicar" : (strict.state.custom ? "Ajuste personalizado activo" : "Ajuste recomendado activo");
   $("strict-msg").className = "msg";
+  renderCurve();
 }
+{ const m = /^#etiquetar=(\d+)$/.exec(location.hash); if (m) api("/api/inspections/" + m[1]).then(r => openLabeler(r)).catch(console.error); }
 if (location.hash === "#exigencia") { $("strict").hidden = false; setTimeout(() => loadStrict().catch(console.error), 0); }
 $("strict-range").addEventListener("input", e => showEstimate(+e.target.value));
 $("strict-btn").addEventListener("click", () => { $("strict").hidden = !$("strict").hidden; if (!$("strict").hidden) loadStrict().catch(console.error); });
@@ -682,6 +772,282 @@ $("strict-apply").addEventListener("click", () => {
   setStrict({ threshold: p.threshold }).catch(console.error);
 });
 $("strict-reset").addEventListener("click", () => setStrict({ reset: true }).catch(console.error));
+// ------------------------------------------------------- curve (trade-off) chart
+function renderCurve() {
+  const st = strict.state, svg = $("curve-svg");
+  if (!st || !st.curve) return;
+  const pts = st.curve.points.slice().sort((a, b) => a.false_alarms - b.false_alarms);
+  const W = svg.clientWidth || 520, H = 230, m = { l: 60, r: 14, t: 12, b: 38 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xMax = Math.min(1, Math.ceil(Math.max(...pts.map(p => p.false_alarms)) * 10 + 0.5) / 10);
+  const yMin = Math.max(0, Math.floor(Math.min(...pts.map(p => p.recall)) * 20 - 0.5) / 20);
+  const X = v => m.l + v / xMax * iw, Y = v => m.t + (1 - (v - yMin) / (1 - yMin)) * ih;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let g = "";
+  for (let i = 0; i <= 5; i++) {  // grid + y labels
+    const v = yMin + (1 - yMin) * i / 5, y = Y(v);
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 6}" y="${y + 4}" text-anchor="end">${Math.round(v * 100)} %</text>`;
+  }
+  const xs = Math.round(xMax * 10);
+  for (let i = 0; i <= xs; i++) {
+    const v = xMax * i / xs, x = X(v);
+    g += `<text x="${x}" y="${H - m.b + 16}" text-anchor="middle">${Math.round(v * 100)} %</text>`;
+  }
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(yMin)}" y2="${Y(yMin)}" stroke="var(--text-3)"/>`;
+  g += `<text x="${m.l + iw / 2}" y="${H - 4}" text-anchor="middle" class="ax">Toallas buenas enviadas a revisión →</text>`;
+  g += `<text transform="translate(12 ${m.t + ih / 2}) rotate(-90)" text-anchor="middle" class="ax">Defectos detectados →</text>`;
+  g += `<path d="${pts.map((p, i) => (i ? "L" : "M") + X(p.false_alarms).toFixed(1) + "," + Y(p.recall).toFixed(1)).join("")}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round"/>`;
+  const all = st.curve.points;
+  Object.entries(st.curve.presets).forEach(([k, t]) => {  // preset marks
+    const p = all[nearestIdx(all, t)], lab = k === st.operating_point ? "recomendado" : k.replace("recall_", "") + " %";
+    g += `<circle cx="${X(p.false_alarms)}" cy="${Y(p.recall)}" r="3" fill="var(--text-3)"/>`;
+    g += `<text x="${X(p.false_alarms) + 6}" y="${Y(p.recall) + 14}" class="pm">${lab}</text>`;
+  });
+  const cur = all[nearestIdx(all, st.threshold)], sel = all[+$("strict-range").value];
+  if (cur !== sel) g += `<circle cx="${X(cur.false_alarms)}" cy="${Y(cur.recall)}" r="5" fill="var(--surface)" stroke="var(--text-2)" stroke-width="2"><title>Ajuste activo</title></circle>`;
+  g += `<circle cx="${X(sel.false_alarms)}" cy="${Y(sel.recall)}" r="6" fill="var(--brand-2)" stroke="var(--surface)" stroke-width="2"/>`;
+  g += `<rect id="curve-hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" style="cursor:pointer"/>`;
+  svg.innerHTML = g;
+  const tip = $("curve-tip"), hit = $("curve-hit");
+  const nearest = ev => {
+    const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * W / r.width;
+    let b = 0; all.forEach((p, i) => { if (Math.abs(X(p.false_alarms) - x) < Math.abs(X(all[b].false_alarms) - x)) b = i; });
+    return b;
+  };
+  hit.addEventListener("mousemove", ev => {
+    const i = nearest(ev), p = all[i], r = svg.getBoundingClientRect();
+    tip.innerHTML = `Detecta <b>${pct(p.recall)}</b> · buenas a revisión <b>${pct(p.false_alarms)}</b><br><span>clic para elegir este punto</span>`;
+    tip.style.left = (X(p.false_alarms) * r.width / W) + "px"; tip.style.top = (Y(p.recall) * r.height / H) + "px"; tip.hidden = false;
+  });
+  hit.addEventListener("mouseleave", () => tip.hidden = true);
+  hit.addEventListener("click", ev => { const i = nearest(ev); $("strict-range").value = i; showEstimate(i); });
+}
+
+// ------------------------------------------------------------------ history
+function confirmButton(btn, question, action) {
+  btn.addEventListener("click", () => {
+    const box = btn.parentElement.querySelector(".confirm");
+    box.innerHTML = `<span>${question}</span><button class="danger">Sí, continuar</button><button>Cancelar</button>`;
+    box.hidden = false;
+    const [yes, no] = box.querySelectorAll("button");
+    no.onclick = () => { box.hidden = true; };
+    yes.onclick = async () => { box.hidden = true; await action(); };
+  });
+}
+confirmButton($("hist-demo"), "¿Borrar los resultados de la demostración? Las fotos de demo/ no se tocan.", async () => {
+  const m = $("hist-msg");
+  try { const j = await api("/api/history/demo", { method: "POST" }); m.textContent = `Se borraron ${j.deleted} resultados de la demostración.`; m.className = "msg"; }
+  catch (e) { m.textContent = "No se pudo borrar (¿la demostración sigue en curso?)."; m.className = "msg err"; }
+});
+confirmButton($("hist-new"), "¿Empezar un historial nuevo? Se guarda una copia de respaldo y el tablero queda en cero. Las fotos de procesadas/ no se borran.", async () => {
+  const m = $("hist-msg");
+  try { const j = await api("/api/history/new", { method: "POST" }); m.textContent = `Historial nuevo. ${j.deleted} inspecciones respaldadas en ${j.backup}`; m.className = "msg"; }
+  catch (e) { m.textContent = "No se pudo reiniciar el historial."; m.className = "msg err"; }
+});
+async function afterReset() {
+  state.selected = null; state.follow = true; state.demo = undefined;
+  $("demo-res").innerHTML = "";
+  await loadList(); await loadSummary(); loadSetup(false).catch(console.error);
+}
+
+// -------------------------------------------------------------- label stats
+async function loadLabelStats() {
+  const s = await api("/api/labels");
+  const top = Object.entries(s.per_class).filter(([, v]) => v).map(([k, v]) => `${esc(dname(k))} ${v}`).join(" · ");
+  $("lab-stats").innerHTML = s.images
+    ? `<b>${s.images}</b> ${s.images === 1 ? "foto etiquetada" : "fotos etiquetadas"} (${s.boxes} ${s.boxes === 1 ? "caja" : "cajas"}${s.empty ? `, ${s.empty} sin defecto` : ""})${top ? "<br>" + top : ""}`
+    : "Todavía no hay fotos etiquetadas.";
+  $("lab-export").hidden = !s.images;
+}
+
+// ------------------------------------------------------------------ labeler
+const LAB_COLORS = { Etiqueta: "#d9d9d9", Mancha: "#ff4fa3", Hilo: "#ffd400", Costura: "#28e07a", Tejido: "#2ee6ff", Tenido: "#ff7a1a", Empalme: "#b98cff" };
+const lab = { open: false, row: null, img: null, boxes: [], classes: [], sel: -1, cls: "Mancha", view: { s: 1, ox: 0, oy: 0 },
+  drag: null, dirty: false, space: false, sugg: [], confirmClose: false };
+
+async function openLabeler(row) {
+  if (!row || row.decision === "ERROR") return;
+  lab.row = row; lab.sel = -1; lab.dirty = false; lab.confirmClose = false;
+  $("lab").hidden = false; lab.open = true; document.body.style.overflow = "hidden";
+  $("lab-title").textContent = `Etiquetar · ${row.file}`;
+  $("lab-msg").textContent = "Cargando foto…"; $("lab-msg").className = "msg";
+  $("lab-note").value = "";
+  const data = await api(`/api/labels/${row.id}`);
+  lab.classes = data.classes; lab.boxes = data.boxes.map(b => ({ ...b })); lab.sugg = data.suggestions || [];
+  $("lab-cls").innerHTML = lab.classes.map((c, i) => `<option value="${c}">${i + 1} · ${esc(dname(c))}</option>`).join("");
+  if (!lab.classes.includes(lab.cls)) lab.cls = lab.classes[1] || lab.classes[0];
+  $("lab-cls").value = lab.cls;
+  $("lab-sugg").hidden = !lab.sugg.length;
+  $("lab-sugg").textContent = `Agregar sugerencias del sistema (${lab.sugg.length})`;
+  const img = new Image();
+  img.onload = () => { lab.img = img; resizeCanvas(); fitView(); labRender(); labList();
+    $("lab-msg").textContent = data.saved ? "Esta foto ya tenía etiquetas guardadas." : "Arrastre sobre la foto para marcar cada defecto."; };
+  img.onerror = () => { $("lab-msg").textContent = "No se pudo abrir la foto original."; $("lab-msg").className = "msg err"; };
+  img.src = `/api/inspections/${row.id}/image`;
+}
+function closeLabeler(force) {
+  if (lab.dirty && !force && !lab.confirmClose) {
+    lab.confirmClose = true;
+    $("lab-msg").textContent = "Hay cambios sin guardar. Pulse Cancelar otra vez para salir sin guardar."; $("lab-msg").className = "msg err";
+    return;
+  }
+  $("lab").hidden = true; lab.open = false; lab.img = null; document.body.style.overflow = "";
+}
+function resizeCanvas() {
+  const cv = $("lab-cv"), r = $("lab-wrap").getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+  cv.style.width = r.width + "px"; cv.style.height = r.height + "px";
+}
+function fitView() {
+  if (!lab.img) return;
+  const cv = $("lab-cv"), W = cv.width, H = cv.height, s = Math.min(W / lab.img.width, H / lab.img.height) * 0.98;
+  lab.view = { s, ox: (W - lab.img.width * s) / 2, oy: (H - lab.img.height * s) / 2 };
+}
+const toScreen = (x, y) => [x * lab.view.s + lab.view.ox, y * lab.view.s + lab.view.oy];
+const toImage = (x, y) => [(x - lab.view.ox) / lab.view.s, (y - lab.view.oy) / lab.view.s];
+function evPos(ev) { const r = $("lab-cv").getBoundingClientRect(), d = window.devicePixelRatio || 1; return [(ev.clientX - r.left) * d, (ev.clientY - r.top) * d]; }
+function norm(b) { return { ...b, x1: Math.min(b.x1, b.x2), x2: Math.max(b.x1, b.x2), y1: Math.min(b.y1, b.y2), y2: Math.max(b.y1, b.y2) }; }
+
+function labRender() {
+  const cv = $("lab-cv"), c = cv.getContext("2d"), d = window.devicePixelRatio || 1;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = "#111"; c.fillRect(0, 0, cv.width, cv.height);
+  if (!lab.img) return;
+  const v = lab.view;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(lab.img, v.ox, v.oy, lab.img.width * v.s, lab.img.height * v.s);
+  const all = lab.drag && lab.drag.mode === "new" ? [...lab.boxes, lab.drag.box] : lab.boxes;
+  all.forEach((b0, i) => {
+    const b = norm(b0), [x1, y1] = toScreen(b.x1, b.y1), [x2, y2] = toScreen(b.x2, b.y2), col = LAB_COLORS[b.cls] || "#fff";
+    const selected = i === lab.sel;
+    c.lineWidth = (selected ? 3 : 2) * d; c.strokeStyle = "rgba(0,0,0,.65)"; c.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    c.lineWidth = (selected ? 2 : 1.5) * d; c.strokeStyle = col; c.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    const tag = dname(b.cls); c.font = `${12 * d}px system-ui, sans-serif`;
+    const tw = c.measureText(tag).width + 8 * d, th = 16 * d, ty = y1 - th < 0 ? y2 : y1 - th;
+    c.fillStyle = col; c.fillRect(x1, ty, tw, th); c.fillStyle = "#0b0b0b"; c.fillText(tag, x1 + 4 * d, ty + 12 * d);
+    if (selected) { c.fillStyle = "#fff"; for (const [hx, hy] of [[x1, y1], [x2, y1], [x1, y2], [x2, y2]]) { c.fillRect(hx - 4 * d, hy - 4 * d, 8 * d, 8 * d); c.strokeStyle = "#000"; c.lineWidth = d; c.strokeRect(hx - 4 * d, hy - 4 * d, 8 * d, 8 * d); } }
+  });
+}
+function labList() {
+  $("lab-n").textContent = lab.boxes.length ? `(${lab.boxes.length})` : "";
+  $("lab-list").innerHTML = lab.boxes.length ? lab.boxes.map((b, i) => `<div class="lab-item ${i === lab.sel ? "on" : ""}" data-i="${i}">
+      <i style="background:${LAB_COLORS[b.cls] || "#fff"}"></i>
+      <select data-i="${i}" aria-label="Tipo de la caja ${i + 1}">${lab.classes.map(c => `<option value="${c}" ${c === b.cls ? "selected" : ""}>${esc(dname(c))}</option>`).join("")}</select>
+      <button data-del="${i}" title="Borrar caja (Supr)">✕</button></div>`).join("")
+    : `<div class="help">Sin cajas. Si la toalla no tiene defectos, guarde así: queda como ejemplo de toalla buena.</div>`;
+  $("lab-list").querySelectorAll(".lab-item").forEach(el => el.addEventListener("click", e => { if (e.target.tagName === "DIV" || e.target.tagName === "I") { lab.sel = +el.dataset.i; labList(); labRender(); } }));
+  $("lab-list").querySelectorAll("select").forEach(el => el.addEventListener("change", () => { lab.boxes[+el.dataset.i].cls = el.value; lab.dirty = true; labList(); labRender(); }));
+  $("lab-list").querySelectorAll("button[data-del]").forEach(el => el.addEventListener("click", () => { lab.boxes.splice(+el.dataset.del, 1); lab.sel = -1; lab.dirty = true; labList(); labRender(); }));
+}
+function hitTest(px, py) {
+  const tol = 8 * (window.devicePixelRatio || 1);
+  if (lab.sel >= 0) {
+    const b = norm(lab.boxes[lab.sel]), [x1, y1] = toScreen(b.x1, b.y1), [x2, y2] = toScreen(b.x2, b.y2);
+    const corners = { nw: [x1, y1], ne: [x2, y1], sw: [x1, y2], se: [x2, y2] };
+    for (const [k, [hx, hy]] of Object.entries(corners)) if (Math.abs(px - hx) < tol && Math.abs(py - hy) < tol) return { i: lab.sel, corner: k };
+  }
+  let best = -1, area = Infinity;  // smallest box under the cursor
+  lab.boxes.forEach((b0, i) => {
+    const b = norm(b0), [x1, y1] = toScreen(b.x1, b.y1), [x2, y2] = toScreen(b.x2, b.y2);
+    if (px >= x1 && px <= x2 && py >= y1 && py <= y2 && (x2 - x1) * (y2 - y1) < area) { best = i; area = (x2 - x1) * (y2 - y1); }
+  });
+  return best >= 0 ? { i: best } : null;
+}
+const cv0 = $("lab-cv");
+cv0.addEventListener("contextmenu", e => e.preventDefault());
+cv0.addEventListener("pointerdown", ev => {
+  if (!lab.img) return;
+  try { cv0.setPointerCapture(ev.pointerId); } catch (e) { /* synthetic or already released pointer */ }
+  const [px, py] = evPos(ev);
+  if (ev.button === 1 || ev.button === 2 || lab.space) { lab.drag = { mode: "pan", px, py, ox: lab.view.ox, oy: lab.view.oy }; return; }
+  const h = hitTest(px, py), [ix, iy] = toImage(px, py);
+  if (h && h.corner) {
+    const b = norm(lab.boxes[h.i]); lab.boxes[h.i] = b;
+    lab.drag = { mode: "resize", i: h.i, corner: h.corner };
+  } else if (h) {
+    lab.sel = h.i; const b = lab.boxes[h.i];
+    lab.drag = { mode: "move", i: h.i, ix, iy, b: { ...b } };
+  } else {
+    lab.sel = -1;
+    lab.drag = { mode: "new", box: { cls: $("lab-cls").value, x1: ix, y1: iy, x2: ix, y2: iy } };
+  }
+  labList(); labRender();
+});
+cv0.addEventListener("pointermove", ev => {
+  const [px, py] = evPos(ev), dr = lab.drag;
+  if (!dr) { const h = lab.img && hitTest(px, py); cv0.style.cursor = lab.space ? "grab" : h && h.corner ? "nwse-resize" : h ? "move" : "crosshair"; return; }
+  const [ix, iy] = toImage(px, py), W = lab.img.width, H = lab.img.height, cl = (v, mx) => Math.max(0, Math.min(mx, v));
+  if (dr.mode === "pan") { lab.view.ox = dr.ox + px - dr.px; lab.view.oy = dr.oy + py - dr.py; }
+  else if (dr.mode === "new") { dr.box.x2 = cl(ix, W); dr.box.y2 = cl(iy, H); }
+  else if (dr.mode === "move") {
+    const b = lab.boxes[dr.i], w = dr.b.x2 - dr.b.x1, h = dr.b.y2 - dr.b.y1;
+    b.x1 = cl(dr.b.x1 + ix - dr.ix, W - w); b.y1 = cl(dr.b.y1 + iy - dr.iy, H - h); b.x2 = b.x1 + w; b.y2 = b.y1 + h; lab.dirty = true;
+  } else if (dr.mode === "resize") {
+    const b = lab.boxes[dr.i];
+    if (dr.corner.includes("w")) b.x1 = cl(ix, W); else b.x2 = cl(ix, W);
+    if (dr.corner.includes("n")) b.y1 = cl(iy, H); else b.y2 = cl(iy, H);
+    lab.dirty = true;
+  }
+  labRender();
+});
+cv0.addEventListener("pointerup", () => {
+  const dr = lab.drag; lab.drag = null;
+  if (!dr) return;
+  if (dr.mode === "new") {
+    const b = norm(dr.box), minPx = 4 / lab.view.s;
+    if (b.x2 - b.x1 > minPx && b.y2 - b.y1 > minPx) { lab.boxes.push(b); lab.sel = lab.boxes.length - 1; lab.dirty = true; }
+  }
+  if (dr.mode === "resize") lab.boxes[dr.i] = norm(lab.boxes[dr.i]);
+  labList(); labRender();
+});
+cv0.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const [px, py] = evPos(ev), f = Math.pow(1.0015, -ev.deltaY), v = lab.view;
+  const s = Math.max(0.02, Math.min(20, v.s * f)), k = s / v.s;
+  lab.view = { s, ox: px - (px - v.ox) * k, oy: py - (py - v.oy) * k };
+  labRender();
+}, { passive: false });
+function zoomBy(f) { const cv = $("lab-cv"), px = cv.width / 2, py = cv.height / 2, v = lab.view, s = Math.max(0.02, Math.min(20, v.s * f)), k = s / v.s; lab.view = { s, ox: px - (px - v.ox) * k, oy: py - (py - v.oy) * k }; labRender(); }
+$("lab-zin").addEventListener("click", () => zoomBy(1.4));
+$("lab-zout").addEventListener("click", () => zoomBy(1 / 1.4));
+$("lab-fit").addEventListener("click", () => { fitView(); labRender(); });
+$("lab-cls").addEventListener("change", () => { lab.cls = $("lab-cls").value; if (lab.sel >= 0) { lab.boxes[lab.sel].cls = lab.cls; lab.dirty = true; labList(); labRender(); } });
+$("lab-sugg").addEventListener("click", () => {
+  const iou = (a, b) => { const ix = Math.max(0, Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1)), iy = Math.max(0, Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1)), i = ix * iy;
+    return i / ((a.x2 - a.x1) * (a.y2 - a.y1) + (b.x2 - b.x1) * (b.y2 - b.y1) - i); };
+  let n = 0;
+  lab.sugg.forEach(s => { if (!lab.boxes.some(b => iou(norm(b), s) > 0.5)) { lab.boxes.push({ cls: s.cls, x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 }); n++; } });
+  lab.dirty = lab.dirty || n > 0; labList(); labRender();
+  $("lab-msg").textContent = n ? `Se agregaron ${n} cajas propuestas por el sistema: revise que estén bien antes de guardar.` : "Las sugerencias ya estaban agregadas.";
+  $("lab-msg").className = "msg";
+});
+$("lab-cancel").addEventListener("click", () => closeLabeler(false));
+$("lab-save").addEventListener("click", async () => {
+  try {
+    const r = await fetch(`/api/labels/${lab.row.id}`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ boxes: lab.boxes.map(norm), note: $("lab-note").value }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.status);
+    lab.dirty = false; closeLabeler(true);
+    flash(`Etiquetas guardadas: ${j.n_boxes} ${j.n_boxes === 1 ? "caja" : "cajas"} en ${j.file}`);
+    loadLabelStats().catch(console.error);
+  } catch (e) { $("lab-msg").textContent = "No se pudo guardar: " + e.message; $("lab-msg").className = "msg err"; }
+});
+document.addEventListener("keydown", e => {
+  if (!lab.open) return;
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.key === " ") { lab.space = true; e.preventDefault(); return; }
+  if ((e.key === "Delete" || e.key === "Backspace") && lab.sel >= 0) { lab.boxes.splice(lab.sel, 1); lab.sel = -1; lab.dirty = true; labList(); labRender(); e.preventDefault(); }
+  else if (/^[1-9]$/.test(e.key) && +e.key <= lab.classes.length) { lab.cls = lab.classes[+e.key - 1]; $("lab-cls").value = lab.cls; if (lab.sel >= 0) { lab.boxes[lab.sel].cls = lab.cls; lab.dirty = true; labList(); } labRender(); }
+  else if (e.key === "Escape") { if (lab.sel >= 0) { lab.sel = -1; labList(); labRender(); } else closeLabeler(false); }
+  else if (e.key === "+" || e.key === "=") zoomBy(1.4);
+  else if (e.key === "-") zoomBy(1 / 1.4);
+  else if (e.key.toLowerCase() === "f") { fitView(); labRender(); }
+  else if (e.key.toLowerCase() === "s" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("lab-save").click(); }
+});
+document.addEventListener("keyup", e => { if (e.key === " ") lab.space = false; });
+window.addEventListener("resize", () => { if (lab.open) { resizeCanvas(); fitView(); labRender(); } });
+function flash(text) { const el = $("toast"); el.textContent = text; el.hidden = false; clearTimeout(flash.t); flash.t = setTimeout(() => el.hidden = true, 3500); }
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-MX"); }, 1000);
 setInterval(loadSummary, 30000);
