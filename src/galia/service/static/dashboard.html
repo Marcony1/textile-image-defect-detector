@@ -131,9 +131,9 @@ button:focus-visible, select:focus-visible, .btn:focus-visible, .row:focus-visib
 .stat:last-child { border-bottom: 0; }
 .stat b { font-variant-numeric: tabular-nums; }
 .help { color: var(--text-3); font-size: 12px; margin-top: 8px; }
-.brandbar { height: 4px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+.brandbar { height: 4px; background: var(--brand-2); }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.brand img { height: 44px; border-radius: 8px; max-width: 180px; object-fit: contain; display: block; }
+.brand img { height: 44px; border-radius: 6px; max-width: 180px; object-fit: contain; display: block; }
 .brand .bname { font-weight: 700; font-size: 16px; color: var(--text); letter-spacing: .01em; line-height: 1.1; }
 .brand .sep { width: 1px; align-self: stretch; background: var(--border); }
 button.primary, .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: transparent; font-weight: 600; }
@@ -518,9 +518,11 @@ function inkFor(rgb) {
 function applyBrand(b) {
   const root = document.documentElement.style, c1 = hexToRgb(b.color), c2 = hexToRgb(b.color2);
   if (c1) { root.setProperty("--brand", "#" + b.color.replace("#", "")); root.setProperty("--brand-ink", inkFor(c1)); root.setProperty("--brand-2", c2 ? "#" + b.color2.replace("#", "") : "#" + b.color.replace("#", "")); }
-  if (b.logo) { $("brand-logo").src = "/brand/logo"; $("brand-logo").alt = b.name || "Logo"; $("brand-logo").hidden = false; }
+  if (b.logo) { $("brand-logo").src = "/brand/logo?v=" + b.logo; $("brand-logo").alt = b.name || "Logo"; $("brand-logo").hidden = false; }
   $("brand-name").textContent = b.name || "";
   $("brand-name").hidden = !b.name;
+  // a wide logo already carries the company name: do not repeat it
+  $("brand-logo").onload = () => { if ($("brand-logo").naturalWidth > 1.6 * $("brand-logo").naturalHeight) $("brand-name").hidden = true; };
   $("brand").hidden = !(b.logo || b.name);
   if (b.name) document.title = `${b.name} · Inspección de toallas`;
 }

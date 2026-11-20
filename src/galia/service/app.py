@@ -107,7 +107,7 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
                     operating_point=worker.operating_point, demo_count=len(labels), demo=demo_state,
                     total_inspections=store.count() if hasattr(store, "count") else None,
                     brand=dict(name=cfg.brand_name, color=cfg.brand_color, color2=cfg.brand_color_2,
-                               logo=bool(cfg.brand_logo and Path(cfg.brand_logo).exists())),
+                               logo=(int(Path(cfg.brand_logo).stat().st_mtime) if cfg.brand_logo and Path(cfg.brand_logo).exists() else False)),
                     note=cfg.note, line_name=cfg.line_name)
 
     @app.get("/brand/logo")
