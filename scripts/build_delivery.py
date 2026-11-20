@@ -29,7 +29,7 @@ ENTREGA = ROOT / "entrega"
 GALIA_MODULES = ["__init__.py", "config.py", "ensemble.py", "inference.py", "models.py", "roi.py", "tiling.py",
                  "calibration.py"]
 MODEL_FILES = ["ensemble.json", "tile_cls_ensemble.json", "tile_cls_efficientnet_b0.pt",
-               "tile_cls_efficientnet_b0_basic_s7.pt", "yolo11s_tiles.pt"]
+               "tile_cls_efficientnet_b0_basic_s7.pt", "yolo11s_tiles.pt", "curva_operacion.json"]
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 CSS = ENTREGA / "estilo.css"
 

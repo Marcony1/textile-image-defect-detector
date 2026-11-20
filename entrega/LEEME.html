@@ -146,6 +146,7 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <li><b>Confirme cada NO OK</b> en la pantalla: <b>Defecto real</b> (tecla D) o <b>Falsa alarma</b> (tecla F). Si una toalla salió OK pero tenía defecto, selecciónela y marque <b>Tenía defecto</b> (X). Esto es lo más valioso de la prueba: mide qué tan bien funciona en la realidad.</li>
 <li>La pantalla muestra los totales del turno, el % de NO OK, toallas por hora y tipos de defecto, y avisa si hay muchas NO OK seguidas, fotos dañadas o la línea sin actividad.</li>
 <li><b>Exportar CSV</b> descarga el reporte del periodo (se abre en Excel).</li>
+<li><b>Exigencia</b> (botón arriba a la derecha): un control deslizante para que el sistema sea más o menos estricto. Al moverlo muestra el efecto estimado (qué % de defectos detecta y qué % de toallas buenas manda a revisión); el cambio se aplica con <b>Aplicar</b>, vale para las toallas siguientes y se conserva al reiniciar. <b>Volver al recomendado</b> regresa al ajuste de fábrica. Recomendamos no moverlo durante los primeros días de la prueba, y anotar la fecha si se cambia.</li>
 <li>Puede ver la pantalla desde otra PC de la planta con <code>permitir_red = si</code>. No la publique en internet: no tiene contraseña.</li>
 </ul>
 
@@ -163,7 +164,7 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <table>
 <tr><th>Opción</th><th>Para qué sirve</th></tr>
 <tr><td><code>entrada</code> / <code>procesadas</code></td><td>Carpeta que se vigila y carpeta donde se archivan las fotos. Pueden ser rutas de red.</td></tr>
-<tr><td><code>ajuste</code></td><td>Qué tan estricto es: <code>recall_98</code> detecta más pero manda más buenas a revisión; <code>recall_95</code> intermedio (por defecto); <code>recall_90</code> menos revisiones, se escapan más defectos.</td></tr>
+<tr><td><code>ajuste</code></td><td>Punto de partida (el "recomendado" del botón Exigencia). Qué tan estricto es: <code>recall_98</code> detecta más pero manda más buenas a revisión; <code>recall_95</code> intermedio (por defecto); <code>recall_90</code> menos revisiones, se escapan más defectos.</td></tr>
 <tr><td><code>escala</code></td><td><code>auto</code> = la que calculó CALIBRAR. Solo cámbiela si se lo indicamos.</td></tr>
 <tr><td><code>nombre_linea</code>, <code>alerta_seguidas</code>, <code>alerta_fraccion</code></td><td>Nombre en pantalla y cuándo avisar.</td></tr>
 <tr><td><code>puerto</code>, <code>permitir_red</code>, <code>abrir_navegador</code></td><td>Dirección de la pantalla y acceso desde otras PCs / Raspberry Pi.</td></tr>

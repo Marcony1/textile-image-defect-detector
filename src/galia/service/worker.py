@@ -62,6 +62,8 @@ class InspectionWorker(threading.Thread):
         self.inspector: TowelInspector | None = None
         self._seen: dict[Path, tuple[int, float]] = {}
         self._halt = threading.Event()
+        self.custom_threshold: float | None = None   # set from the dashboard; None = configured operating point
+        self.pending_threshold: float | None = None  # applied once the models are loaded
         self.inbox.mkdir(parents=True, exist_ok=True)
         self.archive.mkdir(parents=True, exist_ok=True)
 
@@ -77,6 +79,19 @@ class InspectionWorker(threading.Thread):
     @property
     def threshold(self) -> float | None:
         return self.inspector.threshold if self.inspector else None
+
+    @property
+    def default_threshold(self) -> float | None:
+        return self.inspector.ensemble.thresholds[self.operating_point] if self.inspector else None
+
+    def set_threshold(self, value: float | None):
+        """Change how strict the inspection is, from the next towel on. None = back to the configured point."""
+        if self.inspector is None:
+            self.pending_threshold = value
+            return
+        self.inspector.threshold = self.default_threshold if value is None else float(value)
+        self.custom_threshold = None if value is None else float(value)
+        log.info("threshold set to %.3f (%s)", self.inspector.threshold, "custom" if value is not None else "default")
 
     # -------------------------------------------------------------------- loop
     def run(self):
@@ -98,6 +113,8 @@ class InspectionWorker(threading.Thread):
         cal = self.inspector.calibration
         self.status.calibration = (f"{cal['capture']} · {cal['n_photos']} fotos · {cal['date'][:10]} · escala {self.scale:.2f}"
                                    if cal else f"de fábrica (cámara de junio 2025) · escala {self.scale:.2f}")
+        if self.pending_threshold is not None:
+            self.set_threshold(self.pending_threshold)
         self.status.model_loaded = True
         log.info("models loaded; watching %s", self.inbox)
         while not self._halt.is_set():
@@ -147,7 +164,8 @@ class InspectionWorker(threading.Thread):
             defects = [d for d in out["defects"] if d["cls"] not in C.CONTROL_CLASSES]
             top = max(defects, key=lambda d: d["conf"])["cls"] if defects and out["decision"] == "NO OK" else None
             iid = self.store.add(file=job.path.name, decision=out["decision"], score=out["score"],
-                                 threshold=out["threshold"], operating_point=self.operating_point,
+                                 threshold=out["threshold"],
+                                 operating_point=self.operating_point if self.custom_threshold is None else "personalizado",
                                  model_scores=out["model_scores"], defects=defects, top_defect=top,
                                  elapsed_ms=elapsed, image_path=str(dst))
             prev = self.archive / day / "previews" / f"{iid:07d}.jpg"

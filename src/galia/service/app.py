@@ -18,6 +18,8 @@ Endpoints (all JSON unless noted):
     GET  /api/demo/result           demo decisions vs. the known answers (etiquetas.csv)
     POST /api/batch {"folder": ...} analyse every photo of a folder (the originals are not moved)
     GET  /brand/logo                logo file from the branding config
+    GET  /api/threshold             current / recommended threshold and the operating curve
+    POST /api/threshold             {"threshold": z} to change strictness, {"reset": true} to go back
 """
 from __future__ import annotations
 
@@ -56,6 +58,7 @@ class ServiceConfig:
     brand_color: str = ""          # main brand colour (#rrggbb): header bar and buttons
     brand_color_2: str = ""        # secondary brand colour (#rrggbb)
     note: str = ""                 # free text shown in the setup panel
+    settings_file: Path | None = None  # JSON where the dashboard strictness setting survives restarts
 
 
 def _demo_labels(demo_dir: Path | None) -> dict:
@@ -95,6 +98,51 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
     def dashboard():
         return (STATIC / "dashboard.html").read_text(encoding="utf-8")
 
+    # ------------------------------------------------------------- strictness
+    curve_path = Path(worker.models_dir) / "curva_operacion.json"
+    curve = json.loads(curve_path.read_text(encoding="utf-8")) if curve_path.exists() else None
+    if cfg.settings_file and Path(cfg.settings_file).exists():
+        try:
+            saved = json.loads(Path(cfg.settings_file).read_text(encoding="utf-8")).get("threshold")
+            if saved is not None:
+                worker.set_threshold(float(saved))
+        except (ValueError, OSError):
+            pass
+
+    def threshold_state() -> dict:
+        return dict(threshold=worker.threshold, default=worker.default_threshold,
+                    custom=worker.custom_threshold is not None, operating_point=worker.operating_point,
+                    model_loaded=worker.status.model_loaded, curve=curve)
+
+    @app.get("/api/threshold")
+    def get_threshold():
+        return threshold_state()
+
+    @app.post("/api/threshold")
+    def post_threshold(body: dict = Body(...)):
+        if not worker.status.model_loaded:
+            raise HTTPException(409, "El modelo todavía se está cargando")
+        if body.get("reset"):
+            value = None
+        else:
+            try:
+                value = float(body["threshold"])
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(422, "threshold debe ser un número")
+            if curve:
+                ts = [pt["threshold"] for pt in curve["points"]] + list(curve["presets"].values())
+                lo, hi = min(ts) - 0.5, max(ts) + 0.5
+                if not lo <= value <= hi:
+                    raise HTTPException(422, f"Fuera del rango permitido ({lo:.2f} a {hi:.2f})")
+        worker.set_threshold(value)
+        if cfg.settings_file:
+            Path(cfg.settings_file).parent.mkdir(parents=True, exist_ok=True)
+            Path(cfg.settings_file).write_text(json.dumps(dict(
+                threshold=value, changed=datetime.now().isoformat(timespec="seconds"))), encoding="utf-8")
+        state = threshold_state()
+        broadcast("settings", {k: v for k, v in state.items() if k != "curve"})
+        return state
+
     # ------------------------------------------------------- setup / demo / batch
     demo_state = {"running": False, "sent": 0, "total": 0}
 
@@ -104,7 +152,8 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
         return dict(inbox=str(worker.inbox.resolve()), archive=str(worker.archive.resolve()),
                     device=worker.status.device, calibration=worker.status.calibration,
                     model_loaded=worker.status.model_loaded, load_error=worker.status.load_error,
-                    operating_point=worker.operating_point, demo_count=len(labels), demo=demo_state,
+                    operating_point=worker.operating_point, custom_threshold=worker.custom_threshold is not None,
+                    demo_count=len(labels), demo=demo_state,
                     total_inspections=store.count() if hasattr(store, "count") else None,
                     brand=dict(name=cfg.brand_name, color=cfg.brand_color, color2=cfg.brand_color_2,
                                logo=(int(Path(cfg.brand_logo).stat().st_mtime) if cfg.brand_logo and Path(cfg.brand_logo).exists() else False)),
@@ -333,6 +382,7 @@ def _summary(store: Store, worker: InspectionWorker, cfg: ServiceConfig, window:
     return dict(
         window=window, start=start, now=now.isoformat(timespec="seconds"), line_name=cfg.line_name,
         operating_point=worker.operating_point, threshold=worker.threshold,
+        custom_threshold=worker.custom_threshold is not None,
         total=len(done), ok=len(done) - len(nook), nook=len(nook), errors=len(rows) - len(done),
         nook_rate=len(nook) / len(done) if done else None,
         per_hour_last15=len(last15) * 4,

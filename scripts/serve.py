@@ -50,7 +50,8 @@ def main():
     cfg = ServiceConfig(line_name=args.line_name, streak_alert=args.streak_alert, rate_alert=args.rate_alert,
                         demo_dir=Path(args.demo_dir) if args.demo_dir else None, brand_name=args.brand_name,
                         brand_logo=Path(args.brand_logo) if args.brand_logo else None,
-                        brand_color=args.brand_color, brand_color_2=args.brand_color_2)
+                        brand_color=args.brand_color, brand_color_2=args.brand_color_2,
+                        settings_file=Path(args.db).parent / "ajuste.json")
     app = create_app(store, worker, cfg)
     print(f"Tablero: http://{'localhost' if args.host in ('127.0.0.1', '0.0.0.0') else args.host}:{args.port}")
     print(f"Carpeta de entrada: {args.inbox}")

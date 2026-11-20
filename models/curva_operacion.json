@@ -1,0 +1,217 @@
+{
+ "points": [
+  {
+   "threshold": 3.1646,
+   "recall": 0.7959,
+   "false_alarms": 0.0924
+  },
+  {
+   "threshold": 3.0855,
+   "recall": 0.8027,
+   "false_alarms": 0.0924
+  },
+  {
+   "threshold": 3.0064,
+   "recall": 0.8027,
+   "false_alarms": 0.0955
+  },
+  {
+   "threshold": 2.9273,
+   "recall": 0.8027,
+   "false_alarms": 0.0987
+  },
+  {
+   "threshold": 2.8482,
+   "recall": 0.8095,
+   "false_alarms": 0.0987
+  },
+  {
+   "threshold": 2.7691,
+   "recall": 0.8095,
+   "false_alarms": 0.0987
+  },
+  {
+   "threshold": 2.69,
+   "recall": 0.8231,
+   "false_alarms": 0.1019
+  },
+  {
+   "threshold": 2.6109,
+   "recall": 0.8299,
+   "false_alarms": 0.1019
+  },
+  {
+   "threshold": 2.5318,
+   "recall": 0.8299,
+   "false_alarms": 0.1051
+  },
+  {
+   "threshold": 2.4527,
+   "recall": 0.8299,
+   "false_alarms": 0.1051
+  },
+  {
+   "threshold": 2.3736,
+   "recall": 0.8367,
+   "false_alarms": 0.1083
+  },
+  {
+   "threshold": 2.2945,
+   "recall": 0.8435,
+   "false_alarms": 0.1146
+  },
+  {
+   "threshold": 2.2154,
+   "recall": 0.8503,
+   "false_alarms": 0.1178
+  },
+  {
+   "threshold": 2.1363,
+   "recall": 0.8571,
+   "false_alarms": 0.1178
+  },
+  {
+   "threshold": 2.0572,
+   "recall": 0.8571,
+   "false_alarms": 0.1178
+  },
+  {
+   "threshold": 1.9781,
+   "recall": 0.8571,
+   "false_alarms": 0.1178
+  },
+  {
+   "threshold": 1.899,
+   "recall": 0.8639,
+   "false_alarms": 0.1178
+  },
+  {
+   "threshold": 1.8199,
+   "recall": 0.8707,
+   "false_alarms": 0.121
+  },
+  {
+   "threshold": 1.7408,
+   "recall": 0.8707,
+   "false_alarms": 0.1242
+  },
+  {
+   "threshold": 1.6617,
+   "recall": 0.8707,
+   "false_alarms": 0.1306
+  },
+  {
+   "threshold": 1.5826,
+   "recall": 0.8776,
+   "false_alarms": 0.1306
+  },
+  {
+   "threshold": 1.5035,
+   "recall": 0.8776,
+   "false_alarms": 0.1369
+  },
+  {
+   "threshold": 1.4245,
+   "recall": 0.8776,
+   "false_alarms": 0.1401
+  },
+  {
+   "threshold": 1.3454,
+   "recall": 0.898,
+   "false_alarms": 0.1497
+  },
+  {
+   "threshold": 1.2663,
+   "recall": 0.898,
+   "false_alarms": 0.1592
+  },
+  {
+   "threshold": 1.1872,
+   "recall": 0.9116,
+   "false_alarms": 0.172
+  },
+  {
+   "threshold": 1.1081,
+   "recall": 0.9252,
+   "false_alarms": 0.1783
+  },
+  {
+   "threshold": 1.029,
+   "recall": 0.932,
+   "false_alarms": 0.1847
+  },
+  {
+   "threshold": 0.9499,
+   "recall": 0.9456,
+   "false_alarms": 0.1943
+  },
+  {
+   "threshold": 0.8708,
+   "recall": 0.9456,
+   "false_alarms": 0.2038
+  },
+  {
+   "threshold": 0.7917,
+   "recall": 0.9456,
+   "false_alarms": 0.207
+  },
+  {
+   "threshold": 0.7126,
+   "recall": 0.9456,
+   "false_alarms": 0.2166
+  },
+  {
+   "threshold": 0.6335,
+   "recall": 0.9456,
+   "false_alarms": 0.2357
+  },
+  {
+   "threshold": 0.5544,
+   "recall": 0.9456,
+   "false_alarms": 0.242
+  },
+  {
+   "threshold": 0.4753,
+   "recall": 0.9456,
+   "false_alarms": 0.2611
+  },
+  {
+   "threshold": 0.3962,
+   "recall": 0.9456,
+   "false_alarms": 0.2898
+  },
+  {
+   "threshold": 0.3171,
+   "recall": 0.9592,
+   "false_alarms": 0.3121
+  },
+  {
+   "threshold": 0.238,
+   "recall": 0.9728,
+   "false_alarms": 0.3567
+  },
+  {
+   "threshold": 0.1589,
+   "recall": 0.9728,
+   "false_alarms": 0.3981
+  },
+  {
+   "threshold": 0.0798,
+   "recall": 0.9796,
+   "false_alarms": 0.4427
+  },
+  {
+   "threshold": 0.0007,
+   "recall": 0.9932,
+   "false_alarms": 0.4841
+  }
+ ],
+ "presets": {
+  "recall_90": 1.3957,
+  "recall_95": 1.0526,
+  "recall_98": 0.3703
+ },
+ "n_defect": 147,
+ "n_ok": 314,
+ "note": "Estimado con fotos de validación y prueba de las cámaras de 2025 (ya calibradas). Con otra cámara o iluminación los valores reales pueden variar."
+}

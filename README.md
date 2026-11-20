@@ -134,6 +134,7 @@ python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --li
 
 - La cámara guarda cada foto en `--inbox`. El servicio la analiza (~0.8–1 s por toalla en una RTX 3060) y la mueve a `archivo/AAAA-MM-DD/{OK,NO_OK,errores}/`. Cada resultado queda registrado en `inspecciones.db` (SQLite).
 - **Tablero en vivo:** KPIs del turno, última toalla con mapa de calor y cajas, lista de inspecciones, toallas por hora, tipos de defecto y alertas (NO OK seguidas, tasa alta, errores, línea detenida).
+- **Control de exigencia:** botón *Exigencia* con un deslizador sobre la curva de operación (`models/curva_operacion.json`, generada por `scripts/10_operating_curve.py` con val+test). Muestra el recall y las falsas alarmas estimadas antes de aplicar; el umbral se guarda en `ajuste.json` y cada inspección registra el umbral con que se decidió (`operating_point = personalizado`).
 - **Revisión del operador:** cada toalla se marca como *defecto real / falsa alarma* (teclas D/F) u *OK correcto / tenía defecto* (O/X). Así se mide la precisión real y se acumulan etiquetas para reentrenar.
 - API: `POST /api/inspect` (subir una foto), `GET /api/summary`, `GET /api/inspections`, `GET /api/export.csv?window=hoy`, `GET /api/health`.
 - Para probarlo sin la máquina: `python scripts/simulate_line.py --every 4`, que copia fotos de test a la carpeta de entrada.

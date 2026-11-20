@@ -161,6 +161,19 @@ button:disabled { opacity: .55; cursor: default; }
 .cm b { font-size: 15px; display: block; color: var(--text); }
 .miss { font-size: 12.5px; color: var(--text-2); }
 .miss a { color: var(--info); cursor: pointer; text-decoration: underline; }
+.strict { margin-bottom: 14px; }
+.strict .row { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0 4px; }
+.strict .row > span { color: var(--text-2); font-size: 12.5px; white-space: nowrap; line-height: 28px; }
+.strict .track { flex: 1; min-width: 0; padding-bottom: 20px; }
+.strict input[type=range] { width: 100%; margin: 0; accent-color: var(--brand); height: 28px; display: block; }
+.ticks { position: relative; height: 16px; margin: 0 8px; }
+.ticks i { position: absolute; transform: translateX(-50%); font-style: normal; font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+.ticks i::before { content: ""; display: block; width: 1px; height: 5px; background: var(--text-3); margin: 0 auto 1px; }
+.est { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 12px 0; }
+.est > div { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+.est b { display: block; font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.est span { color: var(--text-2); font-size: 12.5px; }
+.pill.custom { border-color: var(--brand-2); color: var(--text); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -188,6 +201,7 @@ button:disabled { opacity: .55; cursor: default; }
         <option value="24h">Últimas 24 h</option>
         <option value="7d">Últimos 7 días</option>
       </select>
+      <button id="strict-btn" title="Hacer la detección más o menos estricta">Exigencia</button>
       <button id="setup-btn" title="Demostración, analizar una carpeta, conectar la cámara">Cómo empezar</button>
       <a class="btn" id="export" href="/api/export.csv?window=turno">Exportar CSV</a>
       <button id="sound" aria-pressed="false" title="Sonido al detectar NO OK">🔇 Sonido</button>
@@ -195,6 +209,19 @@ button:disabled { opacity: .55; cursor: default; }
   </header>
 
   <div class="alerts" id="alerts" aria-live="polite"></div>
+
+  <section class="card strict" id="strict" hidden aria-label="Exigencia de la detección">
+    <div class="setup-head"><h2>Exigencia de la detección</h2><span class="spacer"></span><button id="strict-close">Ocultar</button></div>
+    <p class="help" style="margin-top:4px">Más exigente = se escapan menos defectos, pero más toallas buenas van a revisión. Mueva el control, revise el efecto estimado y pulse <b>Aplicar</b>. El cambio vale para las toallas que lleguen desde ese momento.</p>
+    <div class="row"><span>Menos revisiones</span><div class="track"><input type="range" id="strict-range" min="0" max="40" step="1" aria-label="Exigencia"><div class="ticks" id="strict-ticks"></div></div><span>Detecta más</span></div>
+    <div class="est">
+      <div><b id="est-rec">–</b><span>de las toallas con defecto se detectan</span></div>
+      <div><b id="est-miss">–</b><span>de cada 100 con defecto se escaparían</span></div>
+      <div><b id="est-fa">–</b><span>de las toallas buenas van a revisión</span></div>
+    </div>
+    <div class="review" style="margin-top:0"><button class="primary" id="strict-apply">Aplicar</button><button id="strict-reset">Volver al recomendado</button><span class="msg" id="strict-msg" style="margin:0"></span></div>
+    <p class="help" id="strict-note"></p>
+  </section>
 
   <section class="card setup" id="setup" hidden aria-label="Cómo empezar">
     <div class="setup-head"><h2>Cómo empezar</h2><span class="spacer"></span><button id="setup-close">Ocultar</button></div>
@@ -297,7 +324,7 @@ async function loadSummary() {
   const s = await api("/api/summary?window=" + state.win);
   state.summary = s;
   $("line").textContent = "· " + s.line_name;
-  $("opinfo").textContent = `Punto de operación ${s.operating_point.replace("recall_", "recall ")} % · umbral ${s.threshold == null ? "–" : s.threshold.toFixed(3)} · desde ${s.start.replace("T", " ").slice(0, 16)}`;
+  $("opinfo").textContent = `${s.custom_threshold ? "Exigencia personalizada" : "Punto de operación " + s.operating_point.replace("recall_", "recall ") + " %"} · umbral ${s.threshold == null ? "–" : s.threshold.toFixed(3)} · desde ${s.start.replace("T", " ").slice(0, 16)}`;
   $("k-total").textContent = s.total.toLocaleString("es-MX");
   $("k-total-n").textContent = s.errors ? `${s.errors} con error` : "";
   $("k-nook").innerHTML = `${s.nook.toLocaleString("es-MX")}<small>${fmtPct(s.nook_rate)}</small>`;
@@ -476,6 +503,9 @@ function connect() {
       if (state.follow) select(m.data, true);
       if (m.data.decision === "NO OK") beep();
       if (!$("setup").hidden) loadDemoResult();
+    } else if (m.type === "settings") {
+      if (!$("setup").hidden) loadSetup(false).catch(console.error);
+      if (!$("strict").hidden) loadStrict().catch(console.error); else api("/api/threshold").then(st => { strict.state = st; $("strict-btn").textContent = st.custom ? "Exigencia: personalizada" : "Exigencia"; $("strict-btn").classList.toggle("custom", st.custom); });
     } else if (m.type === "review") {
       upsert(m.data); renderList();
       if (state.selected && state.selected.id === m.data.id) select(m.data, true);
@@ -534,7 +564,7 @@ async function loadSetup(first) {
   st.push(s.model_loaded ? `Modelo <b>listo</b>` : (s.load_error ? `<b style="color:var(--critical)">Error al cargar el modelo</b>` : `Cargando modelo…`));
   if (s.device) st.push(`Equipo <b>${esc(s.device)}</b>`);
   if (s.calibration) st.push(`Calibración <b>${esc(s.calibration)}</b>`);
-  st.push(`Ajuste <b>${esc(s.operating_point.replace("recall_", "detección "))} %</b>`);
+  st.push(s.custom_threshold ? `Exigencia <b>personalizada</b>` : `Ajuste <b>${esc(s.operating_point.replace("recall_", "detección "))} %</b>`);
   if (s.note) st.push(esc(s.note));
   $("setup-status").innerHTML = st.map(x => `<span>${x}</span>`).join("");
   $("demo-btn").closest(".step").hidden = !s.demo_count;
@@ -603,13 +633,62 @@ $("folder-btn").addEventListener("click", async () => {
   } catch (e) { m.textContent = "No se pudo contactar al programa."; m.className = "msg err"; }
 });
 $("folder").addEventListener("keydown", e => { if (e.key === "Enter") $("folder-btn").click(); });
+// ------------------------------------------------------------- strictness
+const strict = { state: null, idx: null };
+function nearestIdx(pts, t) { let b = 0; pts.forEach((p, i) => { if (Math.abs(p.threshold - t) < Math.abs(pts[b].threshold - t)) b = i; }); return b; }
+function pct(x) { return Math.round(x * 100) + " %"; }
+async function loadStrict() {
+  const st = strict.state = await api("/api/threshold");
+  const c = st.curve;
+  $("strict-btn").textContent = st.custom ? "Exigencia: personalizada" : "Exigencia";
+  $("strict-btn").classList.toggle("custom", st.custom);
+  if (!c || st.threshold == null) { $("strict-note").textContent = st.model_loaded ? "No hay curva de operación para este modelo." : "Cargando modelo…"; return; }
+  const pts = c.points, r = $("strict-range");
+  r.max = pts.length - 1;
+  strict.idx = nearestIdx(pts, st.threshold); r.value = strict.idx;
+  const names = { recall_90: "90", recall_95: "95 (recomendado)", recall_98: "98" };
+  const def = st.operating_point;
+  $("strict-ticks").innerHTML = Object.entries(c.presets).map(([k, t]) => {
+    const i = nearestIdx(pts, t), left = (i / (pts.length - 1) * 100).toFixed(1);
+    const lab = k === def ? "recomendado" : k.replace("recall_", "") + " %";
+    return `<i style="left:${left}%">${lab}</i>`;
+  }).join("");
+  $("strict-note").textContent = `Estimación con ${c.n_defect} toallas con defecto y ${c.n_ok} buenas que el sistema no vio al entrenar. ${c.note.split(". ").slice(1).join(". ")}`;
+  showEstimate(strict.idx);
+}
+function showEstimate(i) {
+  const p = strict.state.curve.points[i];
+  $("est-rec").textContent = pct(p.recall);
+  $("est-miss").textContent = Math.round((1 - p.recall) * 100);
+  $("est-fa").textContent = pct(p.false_alarms);
+  const changed = i !== nearestIdx(strict.state.curve.points, strict.state.threshold);
+  $("strict-apply").disabled = !changed;
+  $("strict-msg").textContent = changed ? "Sin aplicar" : (strict.state.custom ? "Ajuste personalizado activo" : "Ajuste recomendado activo");
+  $("strict-msg").className = "msg";
+}
+if (location.hash === "#exigencia") { $("strict").hidden = false; setTimeout(() => loadStrict().catch(console.error), 0); }
+$("strict-range").addEventListener("input", e => showEstimate(+e.target.value));
+$("strict-btn").addEventListener("click", () => { $("strict").hidden = !$("strict").hidden; if (!$("strict").hidden) loadStrict().catch(console.error); });
+$("strict-close").addEventListener("click", () => $("strict").hidden = true);
+async function setStrict(body) {
+  const r = await fetch("/api/threshold", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) { $("strict-msg").textContent = j.detail || "No se pudo aplicar"; $("strict-msg").className = "msg err"; return; }
+  await loadStrict(); loadSummary();
+  $("strict-msg").textContent = "Aplicado: vale para las toallas que lleguen desde ahora.";
+}
+$("strict-apply").addEventListener("click", () => {
+  const p = strict.state.curve.points[+$("strict-range").value];
+  setStrict({ threshold: p.threshold }).catch(console.error);
+});
+$("strict-reset").addEventListener("click", () => setStrict({ reset: true }).catch(console.error));
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-MX"); }, 1000);
 setInterval(loadSummary, 30000);
 window.addEventListener("resize", () => state.summary && renderChart(state.summary.buckets, state.summary.window === "7d"));
 setSound(state.sound);
 $("export").href = "/api/export.csv?window=" + state.win;
-loadSetup(true).catch(console.error); loadSummary().catch(console.error); loadList().catch(console.error); connect();
+loadSetup(true).catch(console.error); api("/api/threshold").then(st => { strict.state = st; $("strict-btn").textContent = st.custom ? "Exigencia: personalizada" : "Exigencia"; $("strict-btn").classList.toggle("custom", st.custom); }).catch(console.error); loadSummary().catch(console.error); loadList().catch(console.error); connect();
 </script>
 </body>
 </html>
