@@ -8,26 +8,32 @@ echo  Necesita internet. Tarda entre 5 y 20 minutos (descarga ~3 GB).
 echo ================================================================
 echo.
 
-rem ---- 1. Buscar Python 3.11 (o 3.10 / 3.12)
-set "PY="
+rem ---- 1. Buscar Python 3.10, 3.11 o 3.12 (python.org, Miniconda o Anaconda)
+set "PYEXE="
 for %%V in (3.11 3.12 3.10) do (
-  if not defined PY (
-    py -%%V -c "import sys" >nul 2>nul && set "PY=py -%%V"
+  if not defined PYEXE (
+    for /f "delims=" %%P in ('py -%%V -c "import sys; print(sys.executable)" 2^>nul') do call :probar "%%P"
   )
 )
-if not defined PY (
-  python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,12) else 1)" >nul 2>nul && set "PY=python"
+for /f "delims=" %%P in ('where python 2^>nul') do call :probar "%%P"
+for %%D in (Python311 Python312 Python310) do (
+  call :probar "%LOCALAPPDATA%\Programs\Python\%%D\python.exe"
+  call :probar "%ProgramFiles%\%%D\python.exe"
 )
-if not defined PY (
-  echo No se encontro Python 3.11.
-  echo Instalelo desde https://www.python.org/downloads/release/python-3119/
+for %%D in ("%USERPROFILE%\miniconda3" "%USERPROFILE%\anaconda3" "%LOCALAPPDATA%\miniconda3" "%LOCALAPPDATA%\anaconda3" "%ProgramData%\miniconda3" "%ProgramData%\anaconda3") do (
+  call :probar "%%~D\python.exe"
+)
+if not defined PYEXE (
+  echo No se encontro Python 3.10, 3.11 o 3.12.
+  echo Instale Python 3.11 desde https://www.python.org/downloads/release/python-3119/
   echo  - descargue "Windows installer (64-bit)"
   echo  - marque la casilla "Add python.exe to PATH" antes de instalar
   echo Despues vuelva a ejecutar INSTALAR.
   pause
   exit /b 1
 )
-echo [1/4] Python encontrado: %PY%
+echo [1/4] Python encontrado: %PYEXE%
+set "PY="%PYEXE%""
 
 rem ---- 2. Entorno propio del programa (no modifica otros programas)
 if not exist "entorno\Scripts\python.exe" (
@@ -70,3 +76,12 @@ echo  Si se repite, envie una foto de esta ventana al equipo de soporte.
 echo ================================================================
 pause
 exit /b 1
+
+:probar
+rem Acepta el Python indicado si existe, es real (no el acceso directo de la Tienda) y es 3.10-3.12
+if defined PYEXE exit /b 0
+if not exist "%~1" exit /b 0
+"%~1" -c "import sys; sys.exit(0 if (3, 10) <= sys.version_info[:2] <= (3, 12) else 1)" >nul 2>nul
+if %errorlevel%==0 set "PYEXE=%~1"
+exit /b 0
+
