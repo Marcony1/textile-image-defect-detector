@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Inspector de toallas · Instrucciones</title>
+<style>{{CSS}}
+.box > div { margin: 4px 0; }
+.step-n { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font-size:10pt; font-weight:700; margin-right:6px; vertical-align:1px; }
+.tree { font: 9pt/1.5 Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 8px 12px; border-radius: 4px; white-space: pre; overflow-x: auto; break-inside: avoid; }
+.toc { columns: 2; font-size: 10pt; margin: 6px 0 4px; }
+.toc a { color: var(--ink); text-decoration: none; }
+h2 { break-before: auto; }
+</style></head>
+<body>
+
+<span class="audience">Instrucciones de instalación y uso</span>
+<h1>Inspector automático de toallas</h1>
+<div class="meta">Versión de prueba · {{FECHA}}</div>
+
+<p class="lead">Este programa revisa la foto de cada toalla y decide si está <b>OK</b> o <b>NO OK</b> (posible defecto). Marca en la foto dónde está el posible defecto y muestra todo en una pantalla en vivo. Esta guía explica cómo instalarlo, probarlo con fotos de ejemplo y conectarlo a su cámara.</p>
+
+<div class="box"><b>Resumen en 4 pasos</b>
+<div><span class="step-n">1</span>Ejecute <code>INSTALAR</code> (una sola vez).</div>
+<div><span class="step-n">2</span>Ejecute <code>INICIAR</code> y pulse <b>Iniciar demostración</b> en la pantalla.</div>
+<div><span class="step-n">3</span>Con su cámara y su luz, tome 30–60 fotos de toallas <b>buenas</b>, cópielas a <code>calibracion</code> y ejecute <code>CALIBRAR</code>.</div>
+<div><span class="step-n">4</span>Haga que la cámara guarde cada foto en la carpeta <code>entrada</code>. Cada foto se analiza sola.</div></div>
+
+<div class="toc">
+<a href="#s1">1. Qué hay en la carpeta</a><br>
+<a href="#s2">2. Qué computadora usar</a><br>
+<a href="#s3">3. Instalación</a><br>
+<a href="#s4">4. Primer uso: la demostración</a><br>
+<a href="#s5">5. Probar con sus propias fotos</a><br>
+<a href="#s6">6. Calibrar para su cámara y su luz</a><br>
+<a href="#s7">7. Conectar la cámara</a><br>
+<a href="#s8">8. Durante la prueba</a><br>
+<a href="#s9">9. Qué enviarnos al terminar</a><br>
+<a href="#s10">10. Configuración</a><br>
+<a href="#s11">11. Problemas comunes</a><br>
+<a href="#s12">12. Para programadores</a>
+</div>
+
+<h2 id="s1">1. Qué hay en la carpeta</h2>
+<div class="tree">Inspector_Toallas/
+├── LEEME.pdf               ← estas instrucciones
+├── INSTALAR.bat            ← paso 1 (Windows). En Linux: instalar.sh
+├── INICIAR.bat             ← abre el programa y la pantalla. En Linux: iniciar.sh
+├── CALIBRAR.bat            ← ajusta el sistema a su cámara. En Linux: calibrar.sh
+├── configuracion.ini       ← carpetas, qué tan estricto es, logo y colores
+├── demo/                   ← {{N_DEMO}} fotos de ejemplo con la respuesta correcta
+├── calibracion/            ← aquí van las fotos de toallas buenas para CALIBRAR
+├── camara/capturar.py      ← programa para tomar fotos con Raspberry Pi o cámara USB
+├── marca/                  ← logo que aparece en la pantalla
+├── modelos/                ← el "cerebro" del sistema (no modificar)
+└── programa/               ← el código (no modificar)
+
+Se crean al usarlo:
+├── entrada/                ← la cámara deja aquí las fotos nuevas
+├── procesadas/AAAA-MM-DD/OK, NO_OK, errores, previews
+└── datos/inspecciones.db   ← historial de todas las inspecciones</div>
+
+<h2 id="s2">2. Qué computadora usar</h2>
+<table>
+<tr><th>Opción</th><th>Tiempo por toalla</th><th>Comentario</th></tr>
+<tr class="hl"><td>PC con Windows 10/11 o Linux y tarjeta gráfica <b>NVIDIA</b> de 6 GB o más (ej. RTX 3060)</td><td class="n">≈ 1 s</td><td>Recomendada para la línea.</td></tr>
+<tr><td>PC normal sin tarjeta NVIDIA (Core i5/i7 o Ryzen, 16 GB de RAM)</td><td class="n">≈ 8–15 s</td><td>Sirve para pruebas y para líneas lentas.</td></tr>
+<tr><td>Raspberry Pi</td><td class="n">más de 1 min</td><td><b>No se recomienda para analizar.</b> Úsela solo para <b>tomar</b> las fotos y mandarlas a la PC (sección 7).</td></tr>
+</table>
+<p>Espacio en disco: unos 6 GB para el programa, más el espacio de las fotos (≈ 1–2 MB por toalla; 1,000 toallas ≈ 2 GB).</p>
+
+<h2 id="s3">3. Instalación (una sola vez)</h2>
+<ol>
+<li><b>Instale Python 3.11</b> si no lo tiene: <code>https://www.python.org/downloads/release/python-3119/</code> → "Windows installer (64-bit)". Durante la instalación <b>marque "Add python.exe to PATH"</b>.</li>
+<li>Copie la carpeta <code>Inspector_Toallas</code> a un disco local, por ejemplo <code>C:\Inspector_Toallas</code>. Evite OneDrive o el escritorio sincronizado.</li>
+<li>Haga doble clic en <code>INSTALAR.bat</code>. Necesita internet y tarda de 5 a 20 minutos. Detecta solo si hay tarjeta NVIDIA. Al final debe decir <i>"Instalación terminada"</i>.</li>
+</ol>
+<p>Linux (Ubuntu): <code>sudo apt install python3.11 python3.11-venv</code> y luego <code>bash instalar.sh</code>.</p>
+
+<h2 id="s4">4. Primer uso: la demostración</h2>
+<ol>
+<li>Doble clic en <code>INICIAR.bat</code>. Se abre una ventana negra (<b>déjela abierta</b>; si la cierra, el programa se detiene) y, a los pocos segundos, el navegador con la pantalla en vivo en <code>http://localhost:8000</code>.</li>
+<li>En el panel <b>"Cómo empezar"</b> pulse <b>Iniciar demostración</b>. Las {{N_DEMO}} fotos de ejemplo llegan una por una, como si las mandara la cámara.</li>
+<li>Cada toalla aparece con su decisión <b style="color:var(--good)">OK</b> o <b style="color:var(--bad)">NO OK</b>. En las NO OK, la zona sospechosa se ilumina y, si el sistema reconoce el tipo de defecto, lo encierra en un recuadro.</li>
+<li>Al terminar, el panel muestra cuántas acertó, una tabla con las detectadas, las que se escaparon y las falsas alarmas, y una lista de los errores (haga clic para verlos).</li>
+</ol>
+<div class="box"><b>Qué esperar</b>Las fotos de demostración son de la cámara con la que se entrenó el sistema y no se usaron para entrenarlo. En pruebas con 231 toallas, con el ajuste <code>recall_95</code>, el sistema detectó ~90 % de las toallas con defecto y mandó a revisión ~15 % de las buenas. Con pocas fotos, el resultado de la demostración puede variar.</div>
+
+<h2 id="s5">5. Probar con sus propias fotos</h2>
+<p>En el panel "Cómo empezar", paso 2, escriba la ruta de una carpeta con fotos (por ejemplo <code>D:\Fotos\lote_12</code>) y pulse <b>Analizar</b>. Las fotos originales <b>no se mueven</b>: se analiza una copia. Formatos: JPG, PNG, BMP, TIF.</p>
+<p>Para que el resultado sea confiable, la foto debe mostrar <b>la toalla completa, extendida y bien iluminada</b>, desde arriba, de forma parecida a las fotos de la carpeta <code>demo</code>.</p>
+
+<h2 id="s6">6. Calibrar para su cámara y su luz (muy importante)</h2>
+<p>El sistema aprendió con fotos de una cámara y una iluminación concretas. Con otra cámara, otra distancia u otra luz, las fotos cambian y el sistema puede marcar como NO OK toallas buenas. <b>Calibrar</b> lo ajusta a su equipo:</p>
+<ol>
+<li>Con la cámara y la luz definitivas, tome <b>30 a 60 fotos de toallas BUENAS</b> (sin ningún defecto), completas y como se tomarían en la línea.</li>
+<li>Cópielas a la carpeta <code>calibracion</code>.</li>
+<li>Doble clic en <code>CALIBRAR.bat</code>. Tarda unos minutos. El programa:
+  <ul><li>mide el tamaño de la <b>etiqueta</b> de la toalla para saber a qué distancia está la cámara (escala);</li>
+  <li>analiza las fotos y toma esas toallas buenas como referencia de "normal".</li></ul></li>
+<li>Cierre <code>INICIAR</code> si estaba abierto y vuelva a abrirlo. En el panel "Cómo empezar" verá <i>Calibración: planta · N fotos</i>.</li>
+</ol>
+<div class="box warn"><b>Cuándo volver a calibrar</b>Si cambia la cámara, el lente, la distancia, la iluminación o el modelo/color de toalla. Si en un mismo lote salen muchas NO OK seguidas en toallas que se ven bien, probablemente cambió algo de la foto. Para volver a la calibración original, borre el archivo <code>modelos/calibracion.json</code> y reinicie INICIAR.</div>
+<p>Si CALIBRAR dice que <i>no encontró la etiqueta</i>, asegúrese de que la etiqueta de la toalla sea visible en las fotos. Si no es posible, indique la escala a mano: es el tamaño de la toalla en las fotos de <code>demo</code> dividido entre el tamaño en sus fotos. Por ejemplo, si en sus fotos la toalla se ve 1.7 veces más grande, abra una ventana de comandos en la carpeta del programa y escriba <code>CALIBRAR.bat --escala 0.6</code>.</p>
+
+<h2 id="s7">7. Conectar la cámara</h2>
+<p>La idea es simple: <b>la cámara guarda cada foto en la carpeta <code>entrada</code></b>. El programa revisa esa carpeta continuamente; cuando aparece una foto nueva y termina de guardarse, la analiza, la muestra en la pantalla y la <b>mueve</b> a <code>procesadas/fecha/OK</code> o <code>procesadas/fecha/NO_OK</code>. La carpeta <code>entrada</code> queda siempre vacía, lista para la siguiente.</p>
+<pre>  Cámara ──guarda foto──►  entrada/  ──el programa la analiza──►  procesadas/2026-11-20/OK/
+                                                                 procesadas/2026-11-20/NO_OK/
+                                     └──► pantalla en vivo + historial</pre>
+<p>Puede usar otra carpeta (por ejemplo, la carpeta donde ya guarda las fotos su cámara Keyence) cambiando <code>entrada =</code> en <code>configuracion.ini</code>. La ruta exacta aparece en la pantalla, en "Cómo empezar" → paso 3 (botón <b>Copiar ruta</b>).</p>
+
+<h3>Opción A · Cámara industrial (Keyence u otra) que ya guarda fotos en la PC o en la red</h3>
+<p>En el software de la cámara, configure la carpeta de salida de imágenes como la carpeta <code>entrada</code> del inspector (o ponga en <code>configuracion.ini</code> la carpeta que ya usa la cámara). Use una foto por toalla, en JPG o PNG, con la toalla completa.</p>
+
+<h3>Opción B · Raspberry Pi con su cámara (la Pi toma la foto, la PC la analiza)</h3>
+<p>Copie la carpeta <code>camara</code> a la Raspberry Pi. Hay dos formas de mandar las fotos a la PC; la primera no requiere configurar carpetas compartidas:</p>
+<p><b>B1 · Por la red (recomendado).</b> En la PC, en <code>configuracion.ini</code>, ponga <code>permitir_red = si</code> y reinicie INICIAR; la ventana negra muestra la dirección, por ejemplo <code>http://192.168.1.50:8000</code>. Permita el acceso si el firewall de Windows lo pregunta. En la Pi:</p>
+<pre>sudo apt install -y python3-picamera2 python3-gpiozero
+python3 capturar.py --servidor http://192.168.1.50:8000 --modo tecla</pre>
+<p><b>B2 · Por carpeta compartida.</b> En Windows, comparta la carpeta <code>entrada</code> (clic derecho → Propiedades → Compartir) y móntela en la Pi:</p>
+<pre>sudo apt install -y cifs-utils
+sudo mkdir -p /mnt/inspector
+sudo mount -t cifs //192.168.1.50/entrada /mnt/inspector -o username=USUARIO_WINDOWS,uid=$(id -u)
+python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
+<p><b>Cuándo se toma la foto</b> (opción <code>--modo</code>):</p>
+<table>
+<tr><th>Modo</th><th>Uso</th><th>Ejemplo</th></tr>
+<tr><td><code>tecla</code></td><td>Pruebas: foto al presionar Enter</td><td><code>--modo tecla</code></td></tr>
+<tr><td><code>intervalo</code></td><td>Foto cada N segundos</td><td><code>--modo intervalo --segundos 4</code></td></tr>
+<tr class="hl"><td><code>sensor</code></td><td><b>Línea:</b> un sensor de presencia (fotocelda) en un pin GPIO dispara la foto cuando llega la toalla</td><td><code>--modo sensor --pin 17 --retraso 0.3</code></td></tr>
+</table>
+<p>Para el modo sensor, conecte la salida del sensor (contacto seco o salida NPN a través de un optoacoplador) entre el pin GPIO indicado (numeración BCM) y GND. <b>No conecte señales de 24 V directamente a la Pi.</b> Use <code>--retraso</code> para esperar a que la toalla quede quieta. Para que arranque sola al encender la Pi, agregue el comando a <code>crontab -e</code> con <code>@reboot</code>.</p>
+
+<h3>Opción C · Cámara USB conectada a la misma PC</h3>
+<pre>entorno\Scripts\python.exe camara\capturar.py --fuente usb --carpeta entrada --modo tecla</pre>
+<p>Use <code>--usb 1</code> si hay más de una cámara y <code>--ancho 3840 --alto 2160</code> para la máxima resolución. Las cámaras web comunes suelen dar menos detalle que una cámara industrial: los defectos pequeños pueden no verse.</p>
+
+<h3>Recomendaciones para la foto</h3>
+<ul>
+<li>Toalla <b>completa y extendida</b>, vista desde arriba, siempre a la misma distancia.</li>
+<li>Iluminación <b>pareja y constante</b> (sin sombras ni reflejos; evite la luz del sol de una ventana).</li>
+<li>Fondo oscuro y uniforme. Resolución mínima sugerida: 3,500 × 2,100 píxeles para toallas de baño.</li>
+<li>Una foto por toalla. Nombre de archivo único (capturar.py lo hace con fecha y hora).</li>
+</ul>
+
+<h2 id="s8">8. Durante la prueba</h2>
+<ul>
+<li><b>Confirme cada NO OK</b> en la pantalla: <b>Defecto real</b> (tecla D) o <b>Falsa alarma</b> (tecla F). Si una toalla salió OK pero tenía defecto, selecciónela y marque <b>Tenía defecto</b> (X). Esto es lo más valioso de la prueba: mide qué tan bien funciona en la realidad.</li>
+<li>La pantalla muestra los totales del turno, el % de NO OK, toallas por hora y tipos de defecto, y avisa si hay muchas NO OK seguidas, fotos dañadas o la línea sin actividad.</li>
+<li><b>Exportar CSV</b> descarga el reporte del periodo (se abre en Excel).</li>
+<li>Puede ver la pantalla desde otra PC de la planta con <code>permitir_red = si</code>. No la publique en internet: no tiene contraseña.</li>
+</ul>
+
+<h2 id="s9">9. Qué enviarnos al terminar la prueba</h2>
+<ol>
+<li>El CSV de todo el periodo (botón Exportar CSV, periodo "Últimos 7 días" o el que corresponda).</li>
+<li>La carpeta <code>procesadas</code> completa, o al menos las carpetas <code>NO_OK</code> y las fotos marcadas como "Tenía defecto".</li>
+<li>El archivo <code>datos/inspecciones.db</code> y <code>modelos/calibracion.json</code>.</li>
+<li>Una descripción breve de la instalación: cámara, lente, distancia, iluminación (de ser posible una foto de la estación) y cualquier cambio durante la prueba.</li>
+</ol>
+<p>Con esto mediremos el desempeño real y prepararemos la siguiente versión. Probablemente pediremos fotos con otras condiciones de iluminación para hacer el sistema más robusto.</p>
+
+<h2 id="s10">10. Configuración (<code>configuracion.ini</code>)</h2>
+<p>Ábralo con el Bloc de notas, cambie el valor después del <code>=</code>, guarde y reinicie INICIAR.</p>
+<table>
+<tr><th>Opción</th><th>Para qué sirve</th></tr>
+<tr><td><code>entrada</code> / <code>procesadas</code></td><td>Carpeta que se vigila y carpeta donde se archivan las fotos. Pueden ser rutas de red.</td></tr>
+<tr><td><code>ajuste</code></td><td>Qué tan estricto es: <code>recall_98</code> detecta más pero manda más buenas a revisión; <code>recall_95</code> intermedio (por defecto); <code>recall_90</code> menos revisiones, se escapan más defectos.</td></tr>
+<tr><td><code>escala</code></td><td><code>auto</code> = la que calculó CALIBRAR. Solo cámbiela si se lo indicamos.</td></tr>
+<tr><td><code>nombre_linea</code>, <code>alerta_seguidas</code>, <code>alerta_fraccion</code></td><td>Nombre en pantalla y cuándo avisar.</td></tr>
+<tr><td><code>puerto</code>, <code>permitir_red</code>, <code>abrir_navegador</code></td><td>Dirección de la pantalla y acceso desde otras PCs / Raspberry Pi.</td></tr>
+<tr><td><code>logo</code>, <code>nombre</code>, <code>color_principal</code>, <code>color_secundario</code></td><td>Logo (archivo en <code>marca/</code>) y colores de la empresa en formato <code>#RRGGBB</code>.</td></tr>
+</table>
+
+<h2 id="s11">11. Problemas comunes</h2>
+<table>
+<tr><th>Problema</th><th>Solución</th></tr>
+<tr><td>INSTALAR dice que no encuentra Python</td><td>Instale Python 3.11 marcando "Add python.exe to PATH" y vuelva a ejecutar INSTALAR.</td></tr>
+<tr><td>INSTALAR falla a la mitad</td><td>Normalmente es la conexión a internet. Vuelva a ejecutarlo: continúa donde se quedó.</td></tr>
+<tr><td>El navegador no se abre</td><td>Ábralo usted y escriba <code>http://localhost:8000</code>.</td></tr>
+<tr><td>"No se pudo abrir el puerto 8000"</td><td>Ya hay otro INICIAR abierto. Ciérrelo, o cambie <code>puerto</code> en la configuración.</td></tr>
+<tr><td>Las fotos se quedan en <code>entrada</code> y no aparecen</td><td>¿Está abierta la ventana de INICIAR? ¿La cámara guarda en la misma carpeta que muestra la pantalla? Formatos válidos: JPG, PNG, BMP, TIF.</td></tr>
+<tr><td>Casi todas las toallas salen NO OK</td><td>Falta calibrar o cambió la cámara o la luz: ejecute CALIBRAR (sección 6).</td></tr>
+<tr><td>Fotos en la carpeta "errores"</td><td>El archivo estaba incompleto o dañado. Revise que la cámara termine de escribir la foto.</td></tr>
+<tr><td>Muy lento (más de 10 s por toalla)</td><td>La PC no tiene tarjeta NVIDIA. Funciona, pero para la línea se recomienda una PC con GPU.</td></tr>
+</table>
+
+<h2 id="s12">12. Para programadores (integración)</h2>
+<p>Además de la carpeta vigilada, el programa ofrece una API HTTP local:</p>
+<pre>POST /api/inspect          (multipart, campo "file")  → {"decision": "OK"|"NO OK", "score", "threshold", "defects": [...]}
+GET  /api/inspections?limit=50   últimas inspecciones
+GET  /api/summary?window=turno   indicadores del periodo (turno | hoy | 24h | 7d)
+GET  /api/export.csv?window=hoy  reporte CSV
+GET  /api/events                 eventos en vivo (Server-Sent Events)
+
+curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
+<p>Para separar toallas automáticamente (PLC, actuador), lea la decisión de <code>/api/inspect</code> o de <code>/api/events</code>. Recomendamos hacerlo solo después de validar el desempeño en la prueba.</p>
+
+<footer>Sistema en etapa de prueba: sus decisiones deben confirmarse por un inspector. Resultados medidos con fotos de la cámara de junio de 2025; el desempeño con otra cámara o iluminación debe medirse en la prueba.</footer>
+</body></html>

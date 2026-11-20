@@ -1,0 +1,6 @@
+{
+  "members": ["tile_cls_efficientnet_b0.pt", "tile_cls_efficientnet_b0_basic_s7.pt"],
+  "tta": false,
+  "agg": "top2",
+  "nota": "Elegido solo con validacion (scripts/09_experiment_val.py, reports/experiments/summary.csv): ens_hn_s7 top2"
+}

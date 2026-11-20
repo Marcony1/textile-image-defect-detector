@@ -1,0 +1,6 @@
+{
+  "weights": [
+    "models/tile_cls_convnext_tiny_basic.pt"
+  ],
+  "tta": false
+}
