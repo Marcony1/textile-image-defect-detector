@@ -13,30 +13,24 @@ echo %~dp0 | findstr /i /c:".zip" /c:"Temp1_" /c:"Temp2_" >nul
 if %errorlevel%==0 goto en_zip
 if not exist "programa\iniciar.py" goto en_zip
 
-rem ---- 1. Buscar Python 3.11 (la version con la que se probo todo)
+rem ---- 1. Python 3.11 portatil INCLUIDO en el paquete (carpeta python311): no se descarga nada
+rem Se copia a una carpeta fija para que el programa siga funcionando aunque esta carpeta se mueva o se borre.
 set "BASE=%LOCALAPPDATA%\InspectorToallas"
 set "PYEXE="
 set "PYOK=(3, 11)"
+call :probar "%BASE%\python311\tools\python.exe"
+if defined PYEXE goto py_ok
+if not exist "python311\tools\python.exe" goto sin_incluido
+echo Copiando Python 3.11 incluido en el paquete a %BASE%\python311 ...
+if not exist "%BASE%" mkdir "%BASE%"
+xcopy "python311" "%BASE%\python311\" /e /i /q /y >nul
+call :probar "%BASE%\python311\tools\python.exe"
+if defined PYEXE goto py_ok
+
+:sin_incluido
+rem Respaldo: un Python 3.11 (o 3.12) ya instalado en la computadora
 call :buscar
 if defined PYEXE goto py_ok
-
-echo No se encontro Python 3.11 en esta computadora.
-echo Se descargara una copia PORTATIL de Python 3.11 (17 MB) en:
-echo   %BASE%\python311
-echo No se ejecuta ningun instalador, no necesita permisos de administrador
-echo y no modifica otras versiones de Python que ya existan.
-echo.
-call :python_portatil
-if defined PYEXE goto py_ok
-
-echo.
-echo No se pudo usar la copia portatil. Probando con winget, el instalador de Windows...
-where winget >nul 2>nul
-if %errorlevel%==0 winget install -e --id Python.Python.3.11 --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-call :buscar
-if defined PYEXE goto py_ok
-
-rem ultimo recurso: Python 3.12 si ya existe
 set "PYOK=(3, 11), (3, 12)"
 call :buscar
 if defined PYEXE goto py_ok
@@ -106,27 +100,13 @@ echo ================================================================
 pause
 exit /b 1
 
-:python_portatil
-rem Python 3.11 portatil oficial (paquete NuGet de python.org): un zip, no un instalador.
-rem OJO: el entorno del programa depende de esta carpeta; no la borre.
-set "PYPKG=https://www.nuget.org/api/v2/package/python/3.11.9"
-if not exist "%BASE%\descargas" mkdir "%BASE%\descargas"
-set "PYZIP=%BASE%\descargas\python311_%RANDOM%%RANDOM%.zip"
-curl.exe -L --fail --retry 3 -o "%PYZIP%" "%PYPKG%"
-if not exist "%PYZIP%" powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri '%PYPKG%' -OutFile '%PYZIP%'"
-if not exist "%PYZIP%" exit /b 0
-if exist "%BASE%\python311" rmdir /s /q "%BASE%\python311"
-powershell -NoProfile -Command "Expand-Archive -LiteralPath '%PYZIP%' -DestinationPath '%BASE%\python311' -Force"
-del "%PYZIP%" >nul 2>nul
-call :probar "%BASE%\python311\tools\python.exe"
-exit /b 0
-
 :sin_python
 echo ================================================================
-echo  No se pudo conseguir Python 3.11 automaticamente.
-echo  Causas comunes: sin internet, un proxy de la empresa, o el
-echo  antivirus bloqueando la descarga (revise sus avisos).
-echo  Instalelo a mano desde:
+echo  No se encontro Python 3.11.
+echo  La carpeta "python311" del paquete falta o el antivirus la bloqueo.
+echo  - Descargue y descomprima de nuevo el zip completo, o
+echo  - revise el baul / cuarentena del antivirus y restaure los archivos.
+echo  Si no es posible, instale Python 3.11 a mano desde:
 echo    https://www.python.org/downloads/release/python-3119/
 echo  - descargue "Windows installer (64-bit)" y ejecutelo
 echo  - marque la casilla "Add python.exe to PATH" antes de instalar

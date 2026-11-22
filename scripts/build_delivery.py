@@ -52,6 +52,37 @@ def pick_demo(n: int, seed: int) -> list[tuple]:
     return list(both.itertuples())
 
 
+PY_VERSION = "3.11.9"
+PY_PACKAGE = f"https://www.nuget.org/api/v2/package/python/{PY_VERSION}"  # official portable CPython (python.org on NuGet)
+
+
+def add_portable_python(dest: Path):
+    """Ship Python 3.11 inside the package so INSTALAR never downloads or unpacks an interpreter
+    (that download-and-extract step is what antivirus heuristics flagged)."""
+    import urllib.request
+    import zipfile
+
+    cache = ROOT / "data" / "cache" / f"python-{PY_VERSION}.nupkg"
+    if not cache.exists():
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        print(f"  descargando Python {PY_VERSION} portátil (una sola vez)…")
+        tmp = cache.with_suffix(".part")
+        urllib.request.urlretrieve(PY_PACKAGE, tmp)
+        tmp.replace(cache)
+    with zipfile.ZipFile(cache) as z:
+        for m in z.namelist():
+            if m.startswith("tools/") and not m.endswith("/"):
+                target = dest / m
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(z.read(m))
+    exe = dest / "tools" / "python.exe"
+    out = subprocess.run([str(exe), "-c", "import sys, venv, ensurepip; print(sys.version.split()[0])"],
+                         capture_output=True, text=True, timeout=60)
+    if out.returncode or out.stdout.strip() != PY_VERSION:
+        raise RuntimeError(f"El Python portátil no funciona: {out.stdout} {out.stderr}")
+    print(f"  python311: Python {out.stdout.strip()} portátil incluido")
+
+
 def build_pdf(html: Path, pdf: Path):
     if not Path(EDGE).exists():
         print("  (Edge no encontrado: solo se genera el HTML)")
@@ -94,6 +125,7 @@ def main():
     (out / "camara").mkdir()
     lf(ENTREGA / "camara" / "capturar.py", out / "camara" / "capturar.py")
     shutil.copytree(ENTREGA / "marca", out / "marca")
+    add_portable_python(out / "python311")
     (out / "calibracion").mkdir()
     (out / "calibracion" / "LEEME.txt").write_text(
         "Copie aquí entre 30 y 60 fotos de toallas BUENAS (sin defecto), tomadas con su cámara\r\n"
