@@ -14,23 +14,26 @@ if %errorlevel%==0 goto en_zip
 if not exist "programa\iniciar.py" goto en_zip
 
 rem ---- 1. Buscar Python 3.11 (la version con la que se probo todo)
+set "BASE=%LOCALAPPDATA%\InspectorToallas"
 set "PYEXE="
 set "PYOK=(3, 11)"
 call :buscar
 if defined PYEXE goto py_ok
 
 echo No se encontro Python 3.11 en esta computadora.
-echo Se descargara e instalara automaticamente, solo para este usuario
-echo (unos 25 MB; no modifica otras versiones de Python que ya existan)...
+echo Se descargara una copia PORTATIL de Python 3.11 (17 MB) en:
+echo   %BASE%\python311
+echo No se ejecuta ningun instalador, no necesita permisos de administrador
+echo y no modifica otras versiones de Python que ya existan.
 echo.
-set "PYURL=https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
-set "PYINST=%TEMP%\python-3.11.9-amd64.exe"
-curl.exe -L --fail -o "%PYINST%" "%PYURL%" 2>nul
-if not exist "%PYINST%" powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri '%PYURL%' -OutFile '%PYINST%'"
-if not exist "%PYINST%" goto sin_python
-"%PYINST%" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 Include_doc=0 Include_launcher=0 Shortcuts=0
-del "%PYINST%" >nul 2>nul
-call :probar "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+call :python_portatil
+if defined PYEXE goto py_ok
+
+echo.
+echo No se pudo usar la copia portatil. Probando con winget, el instalador de Windows...
+where winget >nul 2>nul
+if %errorlevel%==0 winget install -e --id Python.Python.3.11 --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+call :buscar
 if defined PYEXE goto py_ok
 
 rem ultimo recurso: Python 3.12 si ya existe
@@ -45,7 +48,7 @@ echo [1/4] Python encontrado: %PYEXE%
 rem ---- 2. Entorno propio del programa (no modifica otros programas)
 rem Se crea en una ruta corta y fija: PyTorch trae archivos con nombres muy largos y Windows
 rem no acepta rutas de mas de 260 caracteres (falla si la carpeta esta en OneDrive o muy anidada).
-set "ENTORNO=%LOCALAPPDATA%\InspectorToallas\entorno"
+set "ENTORNO=%BASE%\entorno"
 echo %~dp0 | findstr /i "OneDrive" >nul
 if %errorlevel%==0 (
   echo.
@@ -103,9 +106,26 @@ echo ================================================================
 pause
 exit /b 1
 
+:python_portatil
+rem Python 3.11 portatil oficial (paquete NuGet de python.org): un zip, no un instalador.
+rem OJO: el entorno del programa depende de esta carpeta; no la borre.
+set "PYPKG=https://www.nuget.org/api/v2/package/python/3.11.9"
+if not exist "%BASE%\descargas" mkdir "%BASE%\descargas"
+set "PYZIP=%BASE%\descargas\python311_%RANDOM%%RANDOM%.zip"
+curl.exe -L --fail --retry 3 -o "%PYZIP%" "%PYPKG%"
+if not exist "%PYZIP%" powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri '%PYPKG%' -OutFile '%PYZIP%'"
+if not exist "%PYZIP%" exit /b 0
+if exist "%BASE%\python311" rmdir /s /q "%BASE%\python311"
+powershell -NoProfile -Command "Expand-Archive -LiteralPath '%PYZIP%' -DestinationPath '%BASE%\python311' -Force"
+del "%PYZIP%" >nul 2>nul
+call :probar "%BASE%\python311\tools\python.exe"
+exit /b 0
+
 :sin_python
 echo ================================================================
-echo  No se pudo instalar Python 3.11 automaticamente.
+echo  No se pudo conseguir Python 3.11 automaticamente.
+echo  Causas comunes: sin internet, un proxy de la empresa, o el
+echo  antivirus bloqueando la descarga (revise sus avisos).
 echo  Instalelo a mano desde:
 echo    https://www.python.org/downloads/release/python-3119/
 echo  - descargue "Windows installer (64-bit)" y ejecutelo
@@ -126,7 +146,8 @@ pause
 exit /b 1
 
 :buscar
-rem Busca un Python aceptable (PYOK) en: lanzador py, PATH, python.org, Miniconda/Anaconda
+rem Busca un Python aceptable (PYOK) en: copia portatil, lanzador py, PATH, python.org, Miniconda/Anaconda
+call :probar "%LOCALAPPDATA%\InspectorToallas\python311\tools\python.exe"
 for %%V in (3.11 3.12) do (
   for /f "delims=" %%P in ('py -%%V -c "import sys; print(sys.executable)" 2^>nul') do call :probar "%%P"
 )

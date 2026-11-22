@@ -70,7 +70,7 @@ Se crean al usarlo:
 
 <h2 id="s3">3. Instalación (una sola vez)</h2>
 <ol>
-<li><b>Python 3.11</b>: no hace falta instalarlo antes. Si INSTALAR no lo encuentra, lo descarga e instala solo (únicamente para ese usuario; no cambia otras versiones de Python que ya existan). Se necesita exactamente la versión 3.11 (o 3.12): con 3.10 o 3.13 las librerías no se instalan.</li>
+<li><b>Python 3.11</b>: no hace falta instalarlo antes. Si INSTALAR no lo encuentra, descarga una <b>copia portátil oficial</b> de Python 3.11 (17 MB, un archivo comprimido, no un instalador) y la deja en <code>AppData\Local\InspectorToallas\python311</code>. No necesita permisos de administrador ni cambia otras versiones de Python que ya existan. Se necesita exactamente la versión 3.11 (o 3.12): con 3.10 o 3.13 las librerías no se instalan.</li>
 <li><b>Descomprima el zip</b> (clic derecho → "Extraer todo…") en un disco local, por ejemplo <code>C:\Inspector_Toallas</code>. Evite OneDrive o el escritorio sincronizado (funciona, pero OneDrive sincronizaría todas las fotos de la línea).</li>
 <li>Haga doble clic en <code>INSTALAR.bat</code>. Necesita internet y tarda de 5 a 20 minutos. Detecta solo si hay tarjeta NVIDIA. Al final debe decir <i>"Instalación terminada"</i>.</li>
 </ol>
@@ -181,7 +181,7 @@ python3 capturar.py --carpeta /mnt/inspector --modo tecla</pre>
 <tr><th>Problema</th><th>Solución</th></tr>
 <tr><td>INSTALAR dice que se ejecuta "desde dentro del zip"</td><td>Cierre la ventana, descomprima el zip (clic derecho → "Extraer todo…") y ejecute INSTALAR desde la carpeta descomprimida.</td></tr>
 <tr><td>"No matching distribution found for numpy" (u otra librería)</td><td>Se usó una versión de Python distinta de 3.11. Esta versión de INSTALAR instala Python 3.11 sola y rehace el entorno: vuelva a ejecutarlo.</td></tr>
-<tr><td>INSTALAR no pudo instalar Python 3.11</td><td>Sin internet o bloqueado por la empresa. Instálelo a mano desde python.org (versión 3.11, "Windows installer (64-bit)", marcando "Add python.exe to PATH") y vuelva a ejecutar INSTALAR. Puede convivir con otras versiones.</td></tr>
+<tr><td>INSTALAR no pudo conseguir Python 3.11</td><td>Sin internet, un proxy de la empresa o el antivirus bloqueando la descarga (revise sus avisos). Instálelo a mano desde python.org (versión 3.11, "Windows installer (64-bit)", marcando "Add python.exe to PATH") y vuelva a ejecutar INSTALAR. Puede convivir con otras versiones.</td></tr>
 <tr><td>Error "No such file or directory" o "Long Path" al instalar</td><td>Ruta demasiado larga. Esta versión ya instala en una ruta corta; si aparece, copie la carpeta a <code>C:\Inspector_Toallas</code> y vuelva a ejecutar INSTALAR.</td></tr>
 <tr><td>INSTALAR falla a la mitad</td><td>Normalmente es la conexión a internet. Vuelva a ejecutarlo: continúa donde se quedó.</td></tr>
 <tr><td>El navegador no se abre</td><td>Ábralo usted y escriba <code>http://localhost:8000</code>.</td></tr>
