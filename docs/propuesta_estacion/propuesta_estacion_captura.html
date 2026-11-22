@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Propuesta · Estación de captura de fotos para inspección de toallas</title>
+<style>{{CSS}}
+svg { width: 100%; height: auto; display: block; }
+svg text { font-family: "Segoe UI", system-ui, sans-serif; fill: #1b1b1a; }
+svg .sm { font-size: 11px; fill: #52514e; }
+svg .md { font-size: 12.5px; }
+svg .bd { font-size: 13px; font-weight: 600; }
+.fig { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 6px; margin: 10px 0 14px; break-inside: avoid; }
+.fig figcaption { margin-top: 2px; }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.step { display: grid; grid-template-columns: 26px 1fr; gap: 8px; margin: 8px 0; break-inside: avoid; }
+.step .n { width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 10pt; }
+td.c { text-align: center; }
+</style></head>
+<body>
+
+<span class="audience">Propuesta técnica · equipo de montaje y mantenimiento</span>
+<h1>Estación de captura de fotos para la inspección automática de toallas</h1>
+<div class="meta">Galia Textil · Proyecto de inspección por visión · noviembre 2026</div>
+
+<p class="lead">El software de inspección ya funciona: analiza la foto de cada toalla en ≈ 1 s, la decide OK / NO OK y avisa al PLC. Lo que más limita hoy su precisión es <b>la foto</b>: luz variable, resolución justa y una sola cara. Este documento propone cómo construir la estación que toma las fotos, en dos niveles. Incluye diagramas, la función de cada pieza y una guía general de montaje.</p>
+
+<div class="box"><b>Resumen</b>
+<b>Estación 1 · Piloto con cámara de área.</b> Una cámara a color de 20 MP sobre la banda, dentro de un encierro, con <b>dos tipos de luz que se disparan una tras otra</b> (difusa y rasante): dos fotos por toalla. Es rápida de montar y usa el PLC y la PC con GPU que ya existen. Mejora sobre todo manchas, teñido, hilos sueltos y falsas alarmas.<br>
+<b>Estación 2 · Producción con cámaras lineales.</b> Dos cámaras de barrido lineal: una ve la cara superior y otra la inferior, a través del hueco entre dos bandas, sin voltear la toalla. Más resolución, cualquier largo de toalla y separación automática. Es el paso siguiente si el piloto confirma el beneficio.</div>
+
+<h2>1. Qué necesita "ver" el sistema</h2>
+<p>Cada tipo de defecto se ve mejor con una luz distinta. La resolución debe ser suficiente para que el defecto más fino ocupe varios píxeles: un hilo de 1 mm necesita <b>al menos 4–5 píxeles</b>, es decir <b>≤ 0.2 mm por píxel</b>. Hoy trabajamos con ≈ 0.25 mm/px, en el límite.</p>
+<table>
+<tr><th>Defecto</th><th>Qué lo delata</th><th>Luz que mejor lo muestra</th><th>Tamaño típico</th></tr>
+<tr><td>Mancha (aceite, grasa, óxido)</td><td>Cambio de color o brillo</td><td>Difusa, color estable</td><td>5–40 mm</td></tr>
+<tr><td>Teñido (franjas, tono distinto)</td><td>Diferencia de tono muy leve en áreas grandes</td><td>Difusa muy pareja + tarjeta de referencia</td><td>Franjas largas</td></tr>
+<tr><td>Hilo suelto o atrapado</td><td>Relieve fino sobre el rizo</td><td><b>Rasante</b> (proyecta sombra)</td><td>0.5–2 mm de grosor</td></tr>
+<tr><td>Costura (saltada, abierta, torcida)</td><td>Relieve y línea irregular en orillas</td><td>Rasante + difusa</td><td>Orillas y esquinas</td></tr>
+<tr><td>Tejido (hoyo, rizo dañado, ralo)</td><td>Falta de material, textura distinta</td><td>Rasante; <b>contraluz</b> para hoyos</td><td>2–20 mm</td></tr>
+<tr><td>Empalme</td><td>Cambio de textura o línea transversal</td><td>Difusa + rasante</td><td>Ancho de la toalla</td></tr>
+</table>
+
+<figure class="fig">
+<svg viewBox="0 0 760 210" role="img" aria-label="Tres formas de iluminar: difusa, rasante y contraluz, y qué defecto revela cada una">
+  <!-- panel 1: difusa -->
+  <g>
+    <text x="125" y="18" text-anchor="middle" class="bd">Luz difusa (desde arriba)</text>
+    <rect x="30" y="34" width="190" height="14" rx="3" fill="#fdf3c4" stroke="#b57a00"/>
+    <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#ar)">
+      <line x1="55" y1="50" x2="55" y2="118"/><line x1="95" y1="50" x2="95" y2="118"/><line x1="135" y1="50" x2="135" y2="118"/><line x1="175" y1="50" x2="175" y2="118"/>
+    </g>
+    <path d="M20 140 Q30 128 40 140 Q50 128 60 140 Q70 128 80 140 Q90 128 100 140 Q110 128 120 140 Q130 128 140 140 Q150 128 160 140 Q170 128 180 140 Q190 128 200 140 Q210 128 220 140 Q230 128 240 140 L240 152 L20 152 Z" fill="#2a50c8"/>
+    <ellipse cx="130" cy="134" rx="22" ry="6" fill="#5a3b1a" opacity=".8"/>
+    <text x="130" y="176" text-anchor="middle" class="md">Color parejo, sin sombras</text>
+    <text x="130" y="193" text-anchor="middle" class="sm">Revela manchas y teñido</text>
+  </g>
+  <!-- panel 2: rasante -->
+  <g transform="translate(255 0)">
+    <text x="125" y="18" text-anchor="middle" class="bd">Luz rasante (10–20°)</text>
+    <rect x="0" y="100" width="34" height="14" rx="3" fill="#fdf3c4" stroke="#b57a00" transform="rotate(-15 17 107)"/>
+    <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#ar)">
+      <line x1="36" y1="108" x2="105" y2="126"/><line x1="36" y1="114" x2="160" y2="132"/>
+    </g>
+    <path d="M20 140 Q30 128 40 140 Q50 128 60 140 Q70 128 80 140 Q90 128 100 140 Q110 128 120 140 Q130 128 140 140 Q150 128 160 140 Q170 128 180 140 Q190 128 200 140 Q210 128 220 140 Q230 128 240 140 L240 152 L20 152 Z" fill="#2a50c8"/>
+    <path d="M108 136 C114 108 124 108 130 134" fill="none" stroke="#ffd400" stroke-width="4" stroke-linecap="round"/>
+    <path d="M128 133 L190 135 L188 141 L128 141 Z" fill="#000" opacity=".55"/>
+    <text x="102" y="104" class="sm">hilo</text><text x="160" y="128" class="sm">sombra</text>
+    <text x="130" y="176" text-anchor="middle" class="md">Lo que sobresale proyecta sombra</text>
+    <text x="130" y="193" text-anchor="middle" class="sm">Revela hilos, costuras, rizo dañado</text>
+  </g>
+  <!-- panel 3: contraluz -->
+  <g transform="translate(510 0)">
+    <text x="125" y="18" text-anchor="middle" class="bd">Contraluz (desde abajo)</text>
+    <path d="M20 90 Q30 78 40 90 Q50 78 60 90 Q70 78 80 90 L80 102 L20 102 Z M110 90 Q120 78 130 90 Q140 78 150 90 Q160 78 170 90 Q180 78 190 90 Q200 78 210 90 Q220 78 230 90 Q240 78 240 90 L240 102 L110 102 Z" fill="#2a50c8"/>
+    <rect x="80" y="84" width="30" height="18" fill="none"/>
+    <rect x="30" y="140" width="190" height="14" rx="3" fill="#fdf3c4" stroke="#b57a00"/>
+    <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#ar)">
+      <line x1="95" y1="138" x2="95" y2="66"/>
+    </g>
+    <g stroke="#b57a00" stroke-width="1" opacity=".35"><line x1="50" y1="138" x2="50" y2="106"/><line x1="170" y1="138" x2="170" y2="106"/></g>
+    <text x="95" y="60" text-anchor="middle" class="sm">pasa luz</text>
+    <text x="130" y="176" text-anchor="middle" class="md">La luz atraviesa donde falta tela</text>
+    <text x="130" y="193" text-anchor="middle" class="sm">Revela hoyos y tejido ralo (orillas)</text>
+  </g>
+  <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#b57a00"/></marker></defs>
+</svg>
+<figcaption>Figura 1. Cada luz revela un tipo de defecto distinto. Por eso se proponen dos fotos por toalla: difusa y rasante. El contraluz es opcional.</figcaption>
+</figure>
+
+<div class="box warn"><b>Toallas azules y oscuras</b>El rizo azul refleja poca luz roja y verde. Una cámara monocromática (en blanco y negro) o una luz débil la ve casi negra y sin contraste; probablemente por eso la prueba anterior no detectaba defectos en telas azules. La solución: <b>cámara a color</b>, luz blanca potente y estable, y una exposición ajustada para que la toalla quede en tonos medios, no oscura. Todas las fotos con que se entrenó nuestro sistema son de toallas azules y funciona con ellas. Otros colores se deben probar.</div>
+
+<h2>2. Estación 1 · Piloto con cámara de área</h2>
+<p>Una cámara toma la toalla completa de un solo disparo mientras pasa por la banda. La luz es estroboscópica: destellos de microsegundos que "congelan" el movimiento, así que no hace falta detener la banda. Por cada toalla se toman <b>dos fotos seguidas</b>: una con luz difusa y otra con luz rasante.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 760 380" role="img" aria-label="Vista lateral de la estación 1: banda, encierro, cámara arriba, dos barras de luz difusa, barra de luz rasante y sensor de presencia">
+  <defs>
+    <marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52514e"/></marker>
+    <marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#b57a00"/></marker>
+  </defs>
+  <!-- belt -->
+  <rect x="40" y="290" width="680" height="12" rx="6" fill="#3a3a38"/>
+  <circle cx="52" cy="296" r="13" fill="#6b6b68"/><circle cx="708" cy="296" r="13" fill="#6b6b68"/>
+  <line x1="560" y1="330" x2="680" y2="330" stroke="#52514e" stroke-width="1.5" marker-end="url(#a2)"/>
+  <text x="560" y="348" class="sm">avance de la banda</text>
+  <!-- enclosure -->
+  <rect x="230" y="40" width="340" height="250" fill="none" stroke="#1b1b1a" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="575" y="58" class="sm">Encierro: perfil de aluminio +</text>
+  <text x="575" y="72" class="sm">paneles negros mate; cortinas</text>
+  <text x="575" y="86" class="sm">en entrada y salida</text>
+  <!-- camera -->
+  <rect x="380" y="48" width="40" height="30" rx="3" fill="#1b1b1a"/>
+  <path d="M388 78 L412 78 L408 92 L392 92 Z" fill="#52514e"/>
+  <text x="430" y="62" class="md bd">Cámara color 20 MP</text>
+  <text x="430" y="77" class="sm">+ lente fijo + polarizador</text>
+  <!-- fov -->
+  <line x1="400" y1="92" x2="290" y2="284" stroke="#2a78d6" stroke-dasharray="4 4"/>
+  <line x1="400" y1="92" x2="510" y2="284" stroke="#2a78d6" stroke-dasharray="4 4"/>
+  <text x="408" y="190" class="sm" fill="#2a78d6">campo de visión</text>
+  <!-- towel -->
+  <rect x="300" y="282" width="200" height="8" fill="#2a50c8"/>
+  <text x="400" y="320" text-anchor="middle" class="sm">toalla extendida</text>
+  <!-- diffuse lights -->
+  <rect x="246" y="120" width="56" height="14" rx="3" fill="#fdf3c4" stroke="#b57a00" transform="rotate(35 274 127)"/>
+  <rect x="498" y="120" width="56" height="14" rx="3" fill="#fdf3c4" stroke="#b57a00" transform="rotate(-35 526 127)"/>
+  <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#a3)" opacity=".85">
+    <line x1="292" y1="150" x2="350" y2="276"/><line x1="508" y1="150" x2="450" y2="276"/>
+  </g>
+  <text x="30" y="100" class="md bd">Luz difusa (A)</text>
+  <text x="30" y="115" class="sm">2 barras LED con difusor, ≈ 45°,</text>
+  <text x="30" y="129" class="sm">una a cada lado</text>
+  <line x1="200" y1="112" x2="252" y2="120" stroke="#52514e" stroke-width="1"/>
+  <!-- raking -->
+  <rect x="238" y="262" width="40" height="12" rx="3" fill="#fde2c4" stroke="#d0702b" transform="rotate(-12 258 268)"/>
+  <g stroke="#d0702b" stroke-width="1.2" marker-end="url(#a3)"><line x1="280" y1="268" x2="360" y2="282"/></g>
+  <text x="30" y="200" class="md bd">Luz rasante (B)</text>
+  <text x="30" y="215" class="sm">barra LED angosta, 10–20°</text>
+  <text x="30" y="229" class="sm">sobre el plano de la toalla</text>
+  <line x1="175" y1="224" x2="244" y2="262" stroke="#52514e" stroke-width="1"/>
+  <!-- sensor -->
+  <rect x="190" y="270" width="16" height="16" fill="#0ca30c"/>
+  <line x1="206" y1="278" x2="228" y2="278" stroke="#0ca30c" stroke-dasharray="3 2"/>
+  <text x="100" y="340" class="sm">Sensor de presencia</text>
+  <line x1="170" y1="330" x2="196" y2="288" stroke="#52514e"/>
+  <!-- gray card -->
+  <rect x="512" y="281" width="22" height="9" fill="#9a9a96" stroke="#52514e"/>
+  <text x="586" y="250" class="sm">Tarjeta gris</text>
+  <text x="586" y="264" class="sm">(referencia de color)</text>
+  <line x1="584" y1="258" x2="530" y2="282" stroke="#52514e"/>
+</svg>
+<figcaption>Figura 2. Estación 1, vista lateral. La cámara queda perpendicular a la banda, centrada sobre el campo. Las luces difusas se disparan en la foto A y la rasante en la foto B.</figcaption>
+</figure>
+
+<h3>2.1 Cómo se toman las dos fotos</h3>
+<figure class="fig">
+<svg viewBox="0 0 760 230" role="img" aria-label="Diagrama de tiempos: el sensor detecta la toalla, se dispara luz difusa con la foto A y 40 milisegundos después luz rasante con la foto B">
+  <g class="sm">
+    <text x="10" y="44">Sensor de presencia</text><text x="10" y="84">Luz difusa (A)</text><text x="10" y="124">Luz rasante (B)</text><text x="10" y="164">Disparo de cámara</text>
+  </g>
+  <g fill="none" stroke="#1b1b1a" stroke-width="1.8">
+    <path d="M150 48 L200 48 L200 30 L700 30"/>
+    <path d="M150 88 L320 88 L320 70 L328 70 L328 88 L700 88"/>
+    <path d="M150 128 L480 128 L480 110 L488 110 L488 128 L700 128"/>
+    <path d="M150 168 L318 168 L318 150 L330 150 L330 168 L478 168 L478 150 L490 150 L490 168 L700 168"/>
+  </g>
+  <g stroke="#8a8984" stroke-dasharray="3 3"><line x1="200" y1="20" x2="200" y2="190"/><line x1="324" y1="20" x2="324" y2="190"/><line x1="484" y1="20" x2="484" y2="190"/></g>
+  <g class="sm" text-anchor="middle">
+    <text x="200" y="206">0 ms: llega la toalla</text><text x="324" y="206">retraso fijo → foto A</text><text x="484" y="206">+40 ms → foto B</text>
+  </g>
+  <line x1="324" y1="222" x2="484" y2="222" stroke="#2a78d6" marker-start="url(#a4)" marker-end="url(#a4)"/>
+  <text x="560" y="226" class="sm" fill="#2a78d6">≈ 20 mm de avance a 0.5 m/s</text>
+  <defs><marker id="a4" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#2a78d6"/></marker></defs>
+</svg>
+<figcaption>Figura 3. Secuencia de disparo. El PLC (o el controlador de luces) dispara cada luz durante 50–100 µs junto con la cámara. El desfase de ≈ 20 mm entre las dos fotos no es problema: cada foto se analiza por separado.</figcaption>
+</figure>
+<ul>
+<li><b>Una sola cámara alcanza:</b> las cámaras industriales toman 2 fotos en menos de 50 ms. El controlador de iluminación alterna qué luz se enciende en cada disparo.</li>
+<li><b>Movimiento congelado:</b> con destellos de ≤ 100 µs y la banda a 0.5 m/s, la toalla se mueve 0.05 mm durante la foto, menos de un píxel.</li>
+<li><b>Nombre de archivo:</b> la cámara guarda <code>toalla_000123_A.jpg</code> y <code>toalla_000123_B.jpg</code>. El número permite al sistema y al PLC saber a qué toalla corresponde cada foto.</li>
+</ul>
+
+<h3>2.2 Resolución según el tamaño de toalla</h3>
+<table>
+<tr><th>Toalla</th><th>Campo de visión (con margen)</th><th>Cámara de 20 MP (5472 × 3648)</th><th>¿Cumple ≤ 0.2 mm/px?</th></tr>
+<tr><td>De mano, 50 × 90 cm</td><td>60 × 100 cm</td><td>≈ 0.18 mm/px</td><td class="c">Sí</td></tr>
+<tr><td>De baño, 70 × 140 cm</td><td>80 × 150 cm</td><td>≈ 0.27 mm/px</td><td class="c">No: usar 2 cámaras lado a lado, una de 45–65 MP o la estación 2</td></tr>
+</table>
+<p><b>Lente:</b> distancia focal ≈ ancho del sensor × distancia de trabajo ÷ ancho del campo. Ejemplo: sensor de 13 mm, a 1.2 m, campo de 1 m → ≈ 16 mm. El proveedor de la cámara confirma el lente exacto con estos tres datos.</p>
+
+<h3>2.3 ¿Y la otra cara de la toalla?</h3>
+<p>Una cámara de área ve solo la cara de arriba. Para ver la otra hay dos caminos:</p>
+<ul>
+<li><b>Volteador + segunda estación igual:</b> después de la primera captura, la toalla se voltea (rodillo volteador o transferencia en cascada) y pasa por una segunda estación idéntica.</li>
+<li><b>Estación 2 (siguiente sección):</b> una cámara lineal ve la cara inferior a través del hueco entre dos bandas, sin voltear la toalla. Es la solución más limpia para producción.</li>
+</ul>
+<p>Recomendación: empezar con la cara superior. Medir en el piloto qué porcentaje de defectos aparece solo por abajo y, con ese dato, decidir si se agrega la segunda cara.</p>
+
+<h2>3. Estación 2 · Producción con cámaras de barrido lineal</h2>
+<p>Una cámara lineal toma una sola línea de píxeles a la vez, miles de veces por segundo, mientras la toalla pasa por debajo. La imagen se arma línea por línea, como un escáner. Es la tecnología de los sistemas comerciales de inspección de tela, y <b>sí sirve para toallas terminadas sobre una banda</b>, con dos condiciones: velocidad estable con un <b>encoder</b> que marque el avance, y la toalla extendida.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 760 400" role="img" aria-label="Vista lateral de la estación 2: dos bandas con un hueco de transferencia, cámara lineal superior con luces de campo claro y rasante, cámara lineal inferior viendo por el hueco, y encoder en el rodillo">
+  <defs>
+    <marker id="b2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52514e"/></marker>
+    <marker id="b3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#b57a00"/></marker>
+  </defs>
+  <!-- belts -->
+  <rect x="40" y="200" width="335" height="12" rx="6" fill="#3a3a38"/>
+  <rect x="395" y="200" width="325" height="12" rx="6" fill="#3a3a38"/>
+  <circle cx="52" cy="206" r="13" fill="#6b6b68"/><circle cx="363" cy="206" r="13" fill="#6b6b68"/>
+  <circle cx="407" cy="206" r="13" fill="#6b6b68"/><circle cx="708" cy="206" r="13" fill="#6b6b68"/>
+  <!-- encoder -->
+  <circle cx="52" cy="206" r="5" fill="#0ca30c"/>
+  <text x="30" y="240" class="sm">Encoder en el rodillo</text>
+  <text x="30" y="254" class="sm">(marca el avance)</text>
+  <!-- towel -->
+  <rect x="240" y="192" width="290" height="8" fill="#2a50c8"/>
+  <!-- gap -->
+  <text x="420" y="250" class="sm">hueco de transferencia 10–15 mm</text>
+  <line x1="418" y1="244" x2="388" y2="216" stroke="#52514e"/>
+  <!-- top camera -->
+  <rect x="368" y="40" width="34" height="26" rx="3" fill="#1b1b1a"/>
+  <path d="M376 66 L394 66 L391 78 L379 78 Z" fill="#52514e"/>
+  <line x1="385" y1="78" x2="385" y2="190" stroke="#2a78d6" stroke-dasharray="4 4"/>
+  <text x="410" y="52" class="md bd">Cámara lineal superior</text>
+  <text x="410" y="67" class="sm">color, 8 000 píxeles · ve la cara A</text>
+  <!-- top lights -->
+  <rect x="300" y="128" width="50" height="12" rx="3" fill="#fdf3c4" stroke="#b57a00" transform="rotate(30 325 134)"/>
+  <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#b3)"><line x1="340" y1="150" x2="378" y2="186"/></g>
+  <text x="110" y="120" class="md bd">Línea de luz de campo claro</text>
+  <text x="110" y="135" class="sm">difusa, para color: manchas, teñido</text>
+  <line x1="290" y1="128" x2="305" y2="130" stroke="#52514e"/>
+  <rect x="470" y="176" width="44" height="11" rx="3" fill="#fde2c4" stroke="#d0702b" transform="rotate(14 492 181)"/>
+  <g stroke="#d0702b" stroke-width="1.2" marker-end="url(#b3)"><line x1="468" y1="182" x2="398" y2="191"/></g>
+  <text x="430" y="128" class="md bd">Línea de luz rasante</text>
+  <text x="430" y="143" class="sm">relieve: hilos, costuras, rizo</text>
+  <line x1="480" y1="148" x2="488" y2="174" stroke="#52514e"/>
+  <!-- bottom camera -->
+  <rect x="368" y="340" width="34" height="26" rx="3" fill="#1b1b1a"/>
+  <path d="M376 340 L394 340 L391 328 L379 328 Z" fill="#52514e"/>
+  <line x1="385" y1="328" x2="385" y2="214" stroke="#2a78d6" stroke-dasharray="4 4"/>
+  <text x="410" y="350" class="md bd">Cámara lineal inferior</text>
+  <text x="410" y="365" class="sm">ve la cara B a través del hueco (sin voltear)</text>
+  <rect x="300" y="282" width="50" height="12" rx="3" fill="#fdf3c4" stroke="#b57a00" transform="rotate(-30 325 288)"/>
+  <g stroke="#b57a00" stroke-width="1.2" marker-end="url(#b3)"><line x1="340" y1="272" x2="378" y2="218"/></g>
+  <text x="130" y="300" class="sm">luz de la cara B</text>
+  <!-- direction -->
+  <line x1="580" y1="290" x2="700" y2="290" stroke="#52514e" stroke-width="1.5" marker-end="url(#b2)"/>
+  <text x="580" y="308" class="sm">avance continuo</text>
+  <!-- reject -->
+  <rect x="640" y="176" width="40" height="14" fill="#d03b3b" opacity=".85"/>
+  <text x="612" y="96" class="sm">Desviador / soplador</text>
+  <text x="612" y="110" class="sm">(separa las NO OK)</text>
+  <line x1="652" y1="114" x2="660" y2="174" stroke="#52514e"/>
+</svg>
+<figcaption>Figura 4. Estación 2, vista lateral. Ambas caras se inspeccionan en la transferencia entre dos bandas. Cada cámara alterna sus dos luces línea por línea (multiplexado), así obtiene la imagen difusa y la rasante en una sola pasada.</figcaption>
+</figure>
+
+<table>
+<tr><th>Aspecto</th><th>Estación 1 (área)</th><th>Estación 2 (lineal)</th></tr>
+<tr><td>Resolución</td><td>≈ 0.18 mm/px en toalla de mano</td><td>≈ 0.12 mm/px a lo ancho (8 000 px en 1 m) y lo que marque el encoder a lo largo</td></tr>
+<tr><td>Largo de toalla</td><td>Limitado por el campo de la cámara</td><td>Cualquiera</td></tr>
+<tr><td>Caras</td><td>Una (dos con volteador y segunda estación)</td><td>Dos, sin voltear</td></tr>
+<tr><td>Luces</td><td>Dos fotos seguidas (difusa y rasante)</td><td>Dos imágenes intercaladas en la misma pasada</td></tr>
+<tr><td>Iluminación pareja</td><td>Buena, con encierro y difusores</td><td>Muy buena: solo hay que iluminar una línea</td></tr>
+<tr><td>Requisitos mecánicos</td><td>Banda actual + encierro</td><td>Dos bandas con hueco y nariz de transferencia, encoder, velocidad estable</td></tr>
+<tr><td>Complejidad de montaje</td><td>Baja</td><td>Media–alta</td></tr>
+<tr><td>Uso recomendado</td><td>Piloto y validación</td><td>Producción, con separación automática</td></tr>
+</table>
+<div class="box warn"><b>Puntos de cuidado de la estación 2</b>La toalla no debe "colgar" en el hueco: use una nariz de transferencia (barra de borde redondeado) y un hueco de 10–15 mm. La velocidad debe ser estable y el encoder debe ir en el rodillo que arrastra la toalla. Las cámaras lineales necesitan más luz que las de área, por lo que se usan líneas LED de alta intensidad.</div>
+
+<h2>4. Conexiones y control</h2>
+<figure class="fig">
+<svg viewBox="0 0 760 300" role="img" aria-label="Diagrama de conexiones: sensor y encoder al PLC, PLC a controlador de luces y cámara, cámara a switch Ethernet y PC inspector, PC y PLC por Modbus TCP, PLC a torreta y desviador">
+  <defs><marker id="c1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#1b1b1a"/></marker>
+  <marker id="c2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#2a78d6"/></marker></defs>
+  <g font-size="12.5">
+    <rect x="20" y="30" width="140" height="44" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="90" y="57" text-anchor="middle">Sensor de presencia</text>
+    <rect x="20" y="96" width="140" height="44" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="90" y="116" text-anchor="middle">Encoder</text><text x="90" y="131" text-anchor="middle" class="sm">(estación 2)</text>
+    <rect x="230" y="56" width="140" height="70" rx="6" fill="#e8f1fc" stroke="#2a78d6" stroke-width="1.5"/><text x="300" y="86" text-anchor="middle" class="bd">PLC</text><text x="300" y="104" text-anchor="middle" class="sm">(el de la línea)</text>
+    <rect x="520" y="20" width="160" height="44" rx="6" fill="#fdf3c4" stroke="#b57a00"/><text x="600" y="40" text-anchor="middle">Controlador de luces</text><text x="600" y="55" text-anchor="middle" class="sm">estroboscópico</text>
+    <rect x="520" y="84" width="160" height="44" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="600" y="111" text-anchor="middle">Cámara(s)</text>
+    <rect x="520" y="182" width="160" height="44" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="600" y="202" text-anchor="middle">Switch Ethernet</text><text x="600" y="217" text-anchor="middle" class="sm">industrial (PoE)</text>
+    <rect x="230" y="182" width="140" height="64" rx="6" fill="#e7f6e7" stroke="#0ca30c" stroke-width="1.5"/><text x="300" y="208" text-anchor="middle" class="bd">PC Inspector</text><text x="300" y="226" text-anchor="middle" class="sm">GPU · tablero en vivo</text>
+    <rect x="20" y="196" width="140" height="50" rx="6" fill="#fbeaea" stroke="#d03b3b"/><text x="90" y="217" text-anchor="middle">Torreta / alarma</text><text x="90" y="233" text-anchor="middle" class="sm">después: desviador</text>
+  </g>
+  <g stroke="#1b1b1a" stroke-width="1.5" fill="none">
+    <path d="M160 52 L195 52 L195 76 L228 76" marker-end="url(#c1)"/>
+    <path d="M160 118 L195 118 L195 104 L228 104" marker-end="url(#c1)"/>
+    <path d="M370 72 L450 72 L450 42 L518 42" marker-end="url(#c1)"/>
+    <path d="M370 106 L518 106" marker-end="url(#c1)"/>
+    <path d="M680 42 L705 42 L705 106 L682 106" marker-end="url(#c1)"/>
+    <path d="M245 126 L245 160 L90 160 L90 194" marker-end="url(#c1)"/>
+  </g>
+  <g stroke="#2a78d6" stroke-width="1.8" fill="none">
+    <path d="M600 128 L600 180" marker-end="url(#c2)"/>
+    <path d="M518 204 L372 204" marker-end="url(#c2)"/>
+    <path d="M320 180 L320 128" marker-start="url(#c2)" marker-end="url(#c2)"/>
+  </g>
+  <g class="sm">
+    <text x="164" y="44">entrada</text>
+    <text x="376" y="64">disparo luces</text><text x="390" y="100">disparo cámara</text>
+    <text x="710" y="78">sincronía</text>
+    <text x="608" y="158" fill="#2a78d6">fotos (GigE)</text>
+    <text x="420" y="198" fill="#2a78d6">fotos</text>
+    <text x="328" y="150" fill="#2a78d6">Modbus TCP:</text><text x="328" y="164" fill="#2a78d6">decisión por toalla</text>
+    <text x="120" y="154">salida</text>
+  </g>
+  <text x="20" y="288" class="sm">Negro: señales digitales 24 V · Azul: red Ethernet</text>
+</svg>
+<figcaption>Figura 5. Conexiones. El PLC dispara luces y cámara. Las fotos llegan a la PC por red. La PC devuelve la decisión al PLC por Modbus TCP: registro 2 = contador, registro 3 = decisión, registros 4–5 = número de toalla.</figcaption>
+</figure>
+<p><b>Tiempos:</b> el análisis tarda ≈ 1 s por foto con la tarjeta gráfica actual (≈ 2 s por toalla con dos fotos). La distancia entre la cámara y el punto de separación debe dar ese tiempo más un margen. El PLC lee el número de fotos en cola (registro 9); si crece de forma sostenida, la PC no alcanza el ritmo y hace falta una GPU más potente. El mapa completo de registros está en las instrucciones del programa (LEEME, sección 7.2).</p>
+
+<h2>5. Piezas y su función</h2>
+<table>
+<tr><th>Pieza</th><th>Función</th><th class="c">Est. 1</th><th class="c">Est. 2</th></tr>
+<tr><td>Cámara industrial <b>a color</b> de área, 20 MP, obturador global, disparo externo opto-aislado, GigE/USB3</td><td>Tomar la toalla completa en el instante exacto del disparo</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Cámara <b>lineal a color</b> de ≈ 8 000 px (×2: superior e inferior), con disparo por encoder</td><td>Escanear la toalla línea por línea con alta resolución, por ambas caras</td><td class="c"></td><td class="c">●</td></tr>
+<tr><td>Lente fijo de baja distorsión (montura C/F/M42 según la cámara)</td><td>Nitidez de borde a borde; el foco no se mueve</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Filtro polarizador en el lente + polarizadores en las luces</td><td>Eliminar brillos y reflejos del rizo y de la banda</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Barras LED blancas de alta potencia con difusor, CRI &gt; 90, aptas para estrobo (×2)</td><td>Luz difusa pareja: color fiel para manchas y teñido</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Barra LED angosta para luz rasante</td><td>Sombras de relieve: hilos, costuras, rizo dañado</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Líneas LED de alta intensidad: campo claro + rasante (×2 juegos)</td><td>Iluminar la línea que ve cada cámara lineal</td><td class="c"></td><td class="c">●</td></tr>
+<tr><td>Contraluz LED (opcional, bajo una zona translúcida)</td><td>Ver hoyos y tejido ralo en orillas</td><td class="c">○</td><td class="c">○</td></tr>
+<tr><td>Controlador de iluminación estroboscópica con entradas de disparo (multiplexado en est. 2)</td><td>Encender cada luz durante microsegundos, sincronizada con la cámara</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Sensor fotoeléctrico de presencia</td><td>Detectar la llegada de cada toalla</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Encoder rotativo incremental en el rodillo de arrastre</td><td>Sincronizar cada línea de la cámara con el avance real de la banda</td><td class="c"></td><td class="c">●</td></tr>
+<tr><td>Transferencia con hueco de 10–15 mm y nariz de borde redondeado</td><td>Dejar ver la cara inferior sin que la toalla cuelgue</td><td class="c"></td><td class="c">●</td></tr>
+<tr><td>Encierro: perfil de aluminio estructural, paneles negros mate, cortinas en entrada/salida</td><td>Bloquear la luz ambiente (ventanas, lámparas) que cambia la foto</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Soporte de cámara con ajuste fino (altura, posición, inclinación)</td><td>Alinear la cámara perpendicular y poder repetir la posición</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Fondo o banda de color oscuro mate en la zona de captura</td><td>Contraste entre toalla y fondo; evita reflejos</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Tarjeta gris de referencia (18 %) fija en una esquina del campo</td><td>Corregir automáticamente cambios de brillo y color</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>PLC de la línea (existente) con E/S digitales 24 V y Ethernet</td><td>Orquestar sensor, luces, cámara y separación; leer la decisión por Modbus TCP</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Switch Ethernet industrial (con PoE si la cámara lo usa), cable Cat6 blindado</td><td>Llevar las fotos a la PC y comunicar PC ↔ PLC</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>PC con GPU NVIDIA (existente) + disco para fotos (≥ 2 TB)</td><td>Analizar cada foto (≈ 1 s), tablero en vivo y archivo de fotos</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Torreta luminosa / alarma</td><td>Avisar al operador de cada NO OK durante la prueba</td><td class="c">●</td><td class="c">●</td></tr>
+<tr><td>Desviador o soplador neumático + válvula + sensor de confirmación</td><td>Separar automáticamente las toallas NO OK</td><td class="c"></td><td class="c">●</td></tr>
+<tr><td>Fuente 24 VDC regulada, protecciones, canaletas, tierra común</td><td>Alimentación estable y señales sin ruido</td><td class="c">●</td><td class="c">●</td></tr>
+</table>
+<p class="legend">● necesario · ○ opcional</p>
+
+<h2>6. Guía general de montaje (estación 1)</h2>
+<div class="step"><div class="n">1</div><div><b>Ubicación.</b> Elija un tramo recto de banda de ≈ 1.5 m, con la toalla ya extendida y sin vibración. Debe haber espacio para el encierro y, después de la cámara, distancia suficiente para que el PLC reciba la decisión antes de la separación (≈ 1–2 s de recorrido).</div></div>
+<div class="step"><div class="n">2</div><div><b>Estructura y encierro.</b> Monte el marco de perfil de aluminio sobre la banda, independiente de ella para no transmitir vibración. Cierre con paneles negros mate y cortinas en la entrada y salida. Dentro no debe entrar luz de ventanas ni lámparas.</div></div>
+<div class="step"><div class="n">3</div><div><b>Cámara.</b> Instale el soporte de ajuste fino en el centro del marco. La cámara debe quedar <b>perpendicular</b> a la banda (verifique con nivel) y a la altura que da el campo de visión calculado. Coloque el lente y el polarizador.</div></div>
+<div class="step"><div class="n">4</div><div><b>Iluminación.</b> Coloque las dos barras difusas a ambos lados, a ≈ 45° y a la misma distancia del centro. La barra rasante va a un costado, baja, a 10–20° del plano de la banda, y su luz debe barrer la toalla a lo largo. Conecte todas al controlador estroboscópico.</div></div>
+<div class="step"><div class="n">5</div><div><b>Sensor y fondo.</b> Monte el sensor de presencia antes del campo de la cámara. Cubra la zona de captura con fondo oscuro mate si la banda brilla. Fije la tarjeta gris en una esquina del campo, fuera del paso de la toalla.</div></div>
+<div class="step"><div class="n">6</div><div><b>Cableado.</b> Sensor → entrada del PLC. Salidas del PLC → disparo del controlador de luces y de la cámara. Use 24 VDC regulada, tierra común y cable blindado para disparos. Separe los cables de señal de los de potencia (motores, variadores).</div></div>
+<div class="step"><div class="n">7</div><div><b>Red.</b> Cámara, PC y PLC al switch industrial, con IP fijas en la misma subred. Cable Cat6 blindado. En la PC, active en el programa <code>[plc] habilitar = si</code> y permita el puerto 502 en el firewall (redes privadas).</div></div>
+<div class="step"><div class="n">8</div><div><b>Software de la cámara.</b> Configure el disparo externo, guardar en la carpeta de entrada del inspector con el número de toalla en el nombre (<code>toalla_000123_A.jpg</code>, <code>…_B.jpg</code>), formato JPG de alta calidad o PNG, balance de blancos y exposición fijos (no automáticos).</div></div>
+<div class="step"><div class="n">9</div><div><b>Seguridad.</b> Guardas sobre partes móviles, bloqueo de energía (LOTO) durante el montaje y protección visual: las luces estroboscópicas son muy intensas, no deben verse directamente.</div></div>
+
+<h2>7. Puesta en marcha y ajuste</h2>
+<ol>
+<li><b>Enfoque y apertura:</b> enfoque sobre una regla milimétrica puesta en la banda. Cierre el diafragma lo necesario para que el rizo esté nítido en toda la toalla.</li>
+<li><b>Escala:</b> verifique en una foto de la regla cuántos píxeles mide 1 cm. Objetivo: ≥ 50 px/cm (≤ 0.2 mm/px).</li>
+<li><b>Exposición y balance de blancos:</b> con la tarjeta gris, ajuste para que quede gris medio y neutra. Una toalla azul debe verse azul en tonos medios, no oscura. Fije los valores (modo manual).</li>
+<li><b>Uniformidad:</b> tome una foto de una superficie lisa clara. El brillo en las esquinas no debe diferir más de ≈ 10 % del centro; si difiere, ajuste ángulos y distancias de las luces.</li>
+<li><b>Movimiento:</b> con la banda a velocidad normal, verifique que el rizo se vea igual de nítido que con la banda detenida.</li>
+<li><b>Prueba de secuencia:</b> pase 20 toallas y confirme que hay dos fotos por toalla (A y B), con el número correcto, y que el PLC recibe una decisión por toalla (use <code>PROBAR_PLC.bat</code>).</li>
+<li><b>Calibración del sistema:</b> tome 30–60 fotos de toallas <b>buenas</b> y ejecute <code>CALIBRAR</code> del programa de inspección.</li>
+</ol>
+
+<h2>8. Efecto esperado</h2>
+<table>
+<tr><th>Defecto / problema</th><th>Hoy (fotos existentes)</th><th>Con estación 1</th><th>Con estación 2</th></tr>
+<tr><td>Manchas pequeñas, teñido tenue</td><td>Se escapan algunas</td><td>Mejor: luz pareja y color calibrado</td><td>Mejor</td></tr>
+<tr><td>Hilos finos, costuras, rizo dañado</td><td>Difíciles (≈ 15 px)</td><td>Mucho mejor: luz rasante + más resolución</td><td>Mucho mejor: ≈ 0.12 mm/px</td></tr>
+<tr><td>Hoyos, tejido ralo</td><td>Regular</td><td>Mejor con rasante; contraluz opcional</td><td>Mejor</td></tr>
+<tr><td>Defectos en la cara inferior</td><td>Invisibles</td><td>Invisibles (salvo volteador)</td><td><b>Visibles</b></td></tr>
+<tr><td>Falsas alarmas por luz o cámara</td><td>Frecuentes si cambia la luz</td><td>Mucho menos: encierro + luz fija</td><td>Mucho menos</td></tr>
+<tr><td>Toallas largas (de baño)</td><td>Resolución justa</td><td>Requiere 2 cámaras o más MP</td><td>Sin límite</td></tr>
+<tr><td>Separación de las NO OK</td><td>Manual</td><td>Alarma al operador</td><td>Automática</td></tr>
+</table>
+<p>Estas mejoras se miden en la prueba: el tablero registra cada decisión y la confirmación del operador.</p>
+
+<h2>9. Qué cambia en el software</h2>
+<ul>
+<li><b>Ya listo:</b> recibir fotos de la cámara por carpeta, decidir en ≈ 1 s, entregar la decisión al PLC por Modbus TCP, tablero en vivo, etiquetado de defectos y calibración.</li>
+<li><b>Siguiente versión, cuando exista la estación:</b> agrupar las fotos de cada toalla por su número (A difusa, B rasante y, en su caso, cara inferior) y dar <b>una decisión por toalla</b> (NO OK si cualquier foto lo es).</li>
+<li><b>Reentrenamiento:</b> el modelo actual aprendió con fotos de luz difusa. Las fotos rasantes y las de la cara inferior requieren fotos etiquetadas de la nueva estación: ≈ 150 ejemplos por tipo de defecto y ≥ 300 toallas buenas. Se etiquetan desde el mismo tablero. Mientras tanto, el sistema decide con la foto difusa y guarda las demás para entrenar.</li>
+</ul>
+
+<h2>10. Plan por etapas</h2>
+<div class="phase"><div class="t">Etapa 0 · Prueba de iluminación <span class="w">· 1–2 semanas</span></div>Con una cámara disponible, un encierro provisional y una barra de luz rasante: tomar las mismas 50–100 toallas (buenas y con defectos conocidos) con y sin las luces nuevas, y comparar. Define qué luces valen la pena antes de comprar todo.</div>
+<div class="phase"><div class="t">Etapa 1 · Estación 1 en la línea <span class="w">· 1–2 meses</span></div>Montaje, puesta en marcha y prueba con alarma al operador. Juntar fotos etiquetadas de la nueva estación y reentrenar el modelo con ellas.</div>
+<div class="phase"><div class="t">Etapa 2 · Estación 2 y separación automática <span class="w">· cuando la etapa 1 confirme el beneficio</span></div>Cámaras lineales, ambas caras y desviador. Conectar la decisión del sistema a la separación automática una vez validadas las cifras en la línea.</div>
+
+<footer>Propuesta técnica preliminar: las medidas, ángulos y modelos exactos de cámara, lente e iluminación deben confirmarse con los proveedores, con el tamaño de toalla, la velocidad de la banda y el espacio disponible. Los diagramas son esquemáticos, no a escala.</footer>
+</body></html>
