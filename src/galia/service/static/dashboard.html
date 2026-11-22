@@ -228,6 +228,7 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
     </div>
     <div class="spacer"></div>
     <span class="pill" id="conn"><span class="dot" id="conndot"></span><span id="conntext">Conectando…</span></span>
+    <span class="pill" id="plcpill" hidden title="Conexión con el PLC de la línea (Modbus TCP)"><span class="dot" id="plcdot"></span><span id="plctext">PLC</span></span>
     <span class="clock" id="clock"></span>
     <div class="controls">
       <label class="sr" for="win">Periodo</label>
@@ -285,12 +286,16 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
         <div class="msg" id="folder-msg"></div>
       </div>
       <div class="step">
-        <h3><span class="num">3</span>Conectar la cámara</h3>
-        <p>Configure la cámara (o la Raspberry Pi) para guardar cada foto en esta carpeta. Cada foto se analiza en cuanto termina de guardarse:</p>
+        <h3><span class="num">3</span>Conectar la cámara y el PLC</h3>
+        <p>Configure la cámara industrial para guardar cada foto en esta carpeta (con el número de toalla en el nombre). Cada foto se analiza en cuanto termina de guardarse:</p>
         <code id="inbox">…</code>
         <button id="copy-inbox">Copiar ruta</button>
         <p>Las fotos ya analizadas se mueven a esta carpeta, separadas por fecha en <b>OK</b> y <b>NO_OK</b>:</p>
         <code id="archive">…</code>
+        <div id="plc-box" hidden>
+          <p style="margin-top:10px"><b>PLC de la línea</b> (Modbus TCP): el PLC lee la decisión de cada toalla en los registros 0–13 (ver instrucciones, sección 7).</p>
+          <div class="msg" id="plc-info" style="color:var(--text)"></div>
+        </div>
         <p class="help">Antes de la prueba real en la línea, calibre el sistema con unas 30 fotos de toallas buenas de su cámara (programa CALIBRAR; vea las instrucciones).</p>
       </div>
       <div class="step">
@@ -1048,6 +1053,22 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keyup", e => { if (e.key === " ") lab.space = false; });
 window.addEventListener("resize", () => { if (lab.open) { resizeCanvas(); fitView(); labRender(); } });
 function flash(text) { const el = $("toast"); el.textContent = text; el.hidden = false; clearTimeout(flash.t); flash.t = setTimeout(() => el.hidden = true, 3500); }
+
+// ---------------------------------------------------------------------- PLC
+async function loadPLC() {
+  const p = await api("/api/plc");
+  if (!p.enabled) { $("plcpill").hidden = true; $("plc-box").hidden = true; return; }
+  $("plcpill").hidden = false; $("plc-box").hidden = false;
+  const ok = p.running && p.plc_connected, reading = p.running && p.last_read;
+  $("plcdot").className = "dot " + (ok ? "on" : p.running ? "" : "off");
+  $("plctext").textContent = !p.running ? "PLC: error" : ok ? "PLC conectado" : reading ? "PLC leyendo" : "PLC sin conexión";
+  const dec = { 0: "–", 1: "OK", 2: "NO OK", 3: "ERROR" }[p.registers[3]];
+  $("plc-info").innerHTML = !p.running ? `<span style="color:var(--critical)">${esc(p.error || "Servidor Modbus detenido")}</span>`
+    : `Puerto <b>${p.port}</b> · ${p.last_read ? `última lectura ${esc(p.last_read.slice(11))} desde ${esc(p.last_client)}` : "el PLC todavía no se ha conectado"}
+       · latido del PLC: <b>${p.plc_connected ? "sí" : "no"}</b> · último resultado enviado: <b>${dec}</b> (contador ${p.registers[2]})`;
+}
+setInterval(() => loadPLC().catch(() => {}), 3000);
+loadPLC().catch(() => {});
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-MX"); }, 1000);
 setInterval(loadSummary, 30000);

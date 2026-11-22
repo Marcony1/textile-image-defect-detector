@@ -24,6 +24,7 @@ Endpoints (all JSON unless noted):
     POST /api/history/new           back up the history database and start an empty one
     GET  /api/inspections/{id}/image   original photo (full resolution) for the labeller
     GET/POST/DELETE /api/labels/{id}   boxes drawn on that photo ({"boxes": [{cls,x1,y1,x2,y2}], "note"})
+    GET  /api/plc                   Modbus TCP server state for the line PLC (registers, last read, PLC heartbeat)
     GET  /api/labels                counts per class;  GET /api/labels/export.zip  everything for retraining
 """
 from __future__ import annotations
@@ -45,6 +46,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 
 from .. import config as C
 from .labels import LabelStore
+from .plc import PLCServer
 from .store import REVIEW_LABELS, Store, window_start
 from .worker import IMAGE_EXT, InspectionWorker
 
@@ -67,6 +69,10 @@ class ServiceConfig:
     note: str = ""                 # free text shown in the setup panel
     settings_file: Path | None = None  # JSON where the dashboard strictness setting survives restarts
     labels_dir: Path | None = None     # where the dashboard labeller saves photos + YOLO labels
+    plc_enabled: bool = False          # Modbus TCP server for the line PLC (see galia.service.plc)
+    plc_port: int = 502
+    plc_host: str = "0.0.0.0"          # 0.0.0.0 = reachable from the plant network (the PLC); 127.0.0.1 = this PC only
+    plc_allowed: tuple = ()            # IPs allowed to connect; empty = any on the network
 
 
 def _demo_labels(demo_dir: Path | None) -> dict:
@@ -89,17 +95,31 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
         for q in list(subscribers):
             loop.call_soon_threadsafe(q.put_nowait, msg)
 
-    worker.on_result = lambda row: broadcast("inspection", _public(row))
+    plc = PLCServer(cfg.plc_port, cfg.plc_host, allowed=set(cfg.plc_allowed)) if cfg.plc_enabled else None
+    if plc:
+        plc.status_fn = lambda: (2 if worker.status.load_error else 0 if not worker.status.model_loaded
+                                 else 1 if worker.is_alive() else 3)
+
+    def on_result(row):
+        if plc:
+            plc.publish(row, worker.jobs.qsize())
+        broadcast("inspection", _public(row))
+
+    worker.on_result = on_result
 
     @app.on_event("startup")
     async def _startup():
         loop_holder["loop"] = asyncio.get_running_loop()
         if not worker.is_alive():
             worker.start()
+        if plc:
+            plc.start()
 
     @app.on_event("shutdown")
     async def _shutdown():
         worker.stop()
+        if plc:
+            plc.stop()
 
     # ------------------------------------------------------------------ pages
     @app.get("/", response_class=HTMLResponse)
@@ -246,7 +266,12 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
                     total_inspections=store.count() if hasattr(store, "count") else None,
                     brand=dict(name=cfg.brand_name, color=cfg.brand_color, color2=cfg.brand_color_2,
                                logo=(int(Path(cfg.brand_logo).stat().st_mtime) if cfg.brand_logo and Path(cfg.brand_logo).exists() else False)),
-                    note=cfg.note, line_name=cfg.line_name)
+                    note=cfg.note, line_name=cfg.line_name,
+                    plc=plc.state() if plc else dict(enabled=False))
+
+    @app.get("/api/plc")
+    def plc_state():
+        return plc.state() if plc else dict(enabled=False)
 
     @app.get("/brand/logo")
     def brand_logo():

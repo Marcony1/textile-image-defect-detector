@@ -68,6 +68,9 @@ def main():
         print(f"\n No se encontraron las librerías ({e}).\n Ejecute primero INSTALAR.")
         return
 
+    plc_on = si(g("plc", "habilitar", "no"))
+    plc_port = int(g("plc", "puerto", "502"))
+    plc_ips = tuple(x.strip() for x in g("plc", "ip_permitidas").replace(";", ",").split(",") if x.strip())
     datos = ROOT / "datos"
     store = Store(datos / "inspecciones.db")
     worker = InspectionWorker(store, entrada, procesadas, ROOT / "modelos", ajuste, escala)
@@ -78,7 +81,9 @@ def main():
                        demo_dir=demo if (demo / "etiquetas.csv").exists() else None,
                        brand_name=g("marca", "nombre"), brand_logo=logo,
                        brand_color=g("marca", "color_principal"), brand_color_2=g("marca", "color_secundario"),
-                       settings_file=datos / "ajuste.json", labels_dir=ROOT / "etiquetas")
+                       settings_file=datos / "ajuste.json", labels_dir=ROOT / "etiquetas",
+                       plc_enabled=plc_on, plc_port=plc_port, plc_allowed=plc_ips,
+                       plc_host=g("plc", "escuchar_en", "0.0.0.0") or "0.0.0.0")
     app = create_app(store, worker, sc)
     url = f"http://localhost:{puerto}"
     print(f"\n Tablero:            {url}")
@@ -87,6 +92,9 @@ def main():
     print(f" Carpeta de entrada: {entrada}")
     print(f" Fotos procesadas:   {procesadas}")
     print(f" Ajuste:             {ajuste}")
+    if plc_on:
+        print(f" PLC (Modbus TCP):   puerto {plc_port} en {ip_local()}"
+              + (f" · solo desde {', '.join(plc_ips)}" if plc_ips else ""))
     print("\n Deje esta ventana abierta mientras use el sistema. Para detenerlo, ciérrela.\n")
     if si(g("pantalla", "abrir_navegador", "si")):
         threading.Thread(target=lambda: (time.sleep(2.5), webbrowser.open(url)), daemon=True).start()

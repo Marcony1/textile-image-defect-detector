@@ -111,14 +111,14 @@ def main():
     (prog / "galia" / "service" / "static").mkdir(parents=True)
     for m in GALIA_MODULES:
         shutil.copy2(C.PROJECT_ROOT / "src" / "galia" / m, prog / "galia" / m)
-    for f in ["__init__.py", "app.py", "store.py", "worker.py", "labels.py"]:
+    for f in ["__init__.py", "app.py", "store.py", "worker.py", "labels.py", "plc.py"]:
         shutil.copy2(ROOT / "src" / "galia" / "service" / f, prog / "galia" / "service" / f)
     shutil.copy2(ROOT / "src" / "galia" / "service" / "static" / "dashboard.html", prog / "galia" / "service" / "static")
-    for f in ["iniciar.py", "calibrar.py", "requirements.txt"]:
+    for f in ["iniciar.py", "calibrar.py", "probar_plc.py", "requirements.txt"]:
         shutil.copy2(ENTREGA / "programa" / f, prog / f)
 
     # scripts de arranque, configuración, cámara, marca
-    for f in ["INSTALAR.bat", "INICIAR.bat", "CALIBRAR.bat", "configuracion.ini"]:
+    for f in ["INSTALAR.bat", "INICIAR.bat", "CALIBRAR.bat", "PROBAR_PLC.bat", "configuracion.ini"]:
         crlf(ENTREGA / f, out / f)
     for f in ["instalar.sh", "iniciar.sh", "calibrar.sh"]:
         lf(ENTREGA / f, out / f)
