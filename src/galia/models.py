@@ -69,7 +69,7 @@ class YoloTilePredictor:
             # ultralytics expects BGR numpy arrays
             res = self.model.predict([crop(img, w, C.YOLO_TILE)[..., ::-1] for w in chunk],
                                      imgsz=C.YOLO_TILE, conf=self.conf, device=self.device,
-                                     verbose=False, half=has_gpu())
+                                     verbose=False, quantize=16 if has_gpu() else None)
             for w, r in zip(chunk, res):
                 if len(r.boxes):
                     b = r.boxes.data.cpu().numpy()  # x1,y1,x2,y2,conf,cls
