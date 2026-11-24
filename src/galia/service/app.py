@@ -486,6 +486,10 @@ def _summary(store: Store, worker: InspectionWorker, cfg: ServiceConfig, window:
     if last and now - datetime.fromisoformat(last) > timedelta(minutes=cfg.idle_minutes):
         alerts.append(dict(level="info", title="Sin toallas nuevas",
                            detail=f"Última inspección {datetime.fromisoformat(last):%H:%M}. ¿Línea detenida o cámara sin guardar fotos?"))
+    if worker.status.gpu_problem:
+        alerts.append(dict(level="warning", title="La tarjeta gráfica no se pudo usar: se analiza con el procesador (más lento)",
+                           detail="La versión de PyTorch instalada no es compatible con esta tarjeta. Cierre el programa y "
+                                  "ejecute INSTALAR de nuevo; elegirá la versión correcta. Detalle: " + worker.status.gpu_problem))
     if not worker.is_alive():
         alerts.append(dict(level="critical", title="El servicio de inspección está detenido",
                            detail=(f"No se pudieron cargar los modelos: {worker.status.load_error}" if worker.status.load_error

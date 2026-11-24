@@ -64,7 +64,7 @@ Se crean al usarlo:
 <h2 id="s2">2. Qué computadora usar</h2>
 <table>
 <tr><th>Opción</th><th>Tiempo por toalla</th><th>Comentario</th></tr>
-<tr class="hl"><td>PC con Windows 10/11 o Linux y tarjeta gráfica <b>NVIDIA</b> de 6 GB o más (ej. RTX 3060)</td><td class="n">≈ 1 s</td><td>Recomendada para la línea.</td></tr>
+<tr class="hl"><td>PC con Windows 10/11 o Linux y tarjeta gráfica <b>NVIDIA</b> de 6 GB o más (de la serie GTX 900 a la RTX 50; ej. RTX 3060). INSTALAR elige la versión de PyTorch según la tarjeta</td><td class="n">≈ 1 s</td><td>Recomendada para la línea.</td></tr>
 <tr><td>PC normal sin tarjeta NVIDIA (Core i5/i7 o Ryzen, 16 GB de RAM)</td><td class="n">≈ 8–15 s</td><td>Sirve para pruebas y para líneas lentas.</td></tr>
 <tr><td>Raspberry Pi</td><td class="n">más de 1 min</td><td><b>No se recomienda para analizar.</b> Úsela solo para <b>tomar</b> las fotos y mandarlas a la PC (sección 7).</td></tr>
 </table>
@@ -211,6 +211,7 @@ Se crean al usarlo:
 <tr><td>Las fotos se quedan en <code>entrada</code> y no aparecen</td><td>¿Está abierta la ventana de INICIAR? ¿La cámara guarda en la misma carpeta que muestra la pantalla? Formatos válidos: JPG, PNG, BMP, TIF.</td></tr>
 <tr><td>Casi todas las toallas salen NO OK</td><td>Falta calibrar o cambió la cámara o la luz: ejecute CALIBRAR (sección 6).</td></tr>
 <tr><td>Fotos en la carpeta "errores"</td><td>El archivo estaba incompleto o dañado. Revise que la cámara termine de escribir la foto.</td></tr>
+<tr><td>"CUDA error: no kernel image is available" o aviso "La tarjeta gráfica no se pudo usar"</td><td>La versión de PyTorch instalada no corresponde a la generación de la tarjeta (por ejemplo, una RTX 50). Esta versión del programa sigue funcionando con el procesador, pero más lento. Para usar la tarjeta: cierre INICIAR y ejecute <b>INSTALAR</b> de nuevo; detecta la tarjeta, elige la versión correcta y la prueba. Si aun así no funciona, actualice el driver de NVIDIA.</td></tr>
 <tr><td>Muy lento (más de 10 s por toalla)</td><td>La PC no tiene tarjeta NVIDIA. Funciona, pero para la línea se recomienda una PC con GPU.</td></tr>
 </table>
 

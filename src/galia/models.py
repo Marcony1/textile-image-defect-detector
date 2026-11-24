@@ -23,12 +23,44 @@ IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
+_GPU_STATE: dict = {}
+
+
 def has_gpu() -> bool:
-    """NVIDIA GPU usable? Set GALIA_DEVICE=cpu to force the CPU."""
+    """NVIDIA GPU usable? Set GALIA_DEVICE=cpu to force the CPU.
+
+    "Available" is not enough: a PyTorch build without kernels for this GPU
+    (e.g. a CUDA 12.1 build on an RTX 50 / Blackwell card) reports the GPU but
+    fails on the first convolution ("no kernel image is available"). So the GPU
+    is tested once with a tiny convolution; if it fails, everything runs on the
+    CPU and ``gpu_problem()`` explains why.
+    """
     import os
     if os.environ.get("GALIA_DEVICE", "").lower() == "cpu":
         return False
-    return torch.cuda.is_available() and torch.cuda.device_count() > 0
+    if "ok" not in _GPU_STATE:
+        _GPU_STATE["ok"] = False
+        if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+            try:
+                x = torch.randn(1, 3, 16, 16, device="cuda")
+                w = torch.randn(4, 3, 3, 3, device="cuda")
+                F.conv2d(x, w).sum().item()
+                torch.cuda.synchronize()
+                _GPU_STATE["ok"] = True
+            except Exception as e:  # unsupported architecture, driver problem, out of memory...
+                name = torch.cuda.get_device_name(0)
+                cc = ".".join(map(str, torch.cuda.get_device_capability(0)))
+                _GPU_STATE["problem"] = (f"{name} (arquitectura {cc}) no es compatible con PyTorch {torch.__version__}: "
+                                         f"{str(e).splitlines()[0]}")
+                import logging
+                logging.getLogger("galia").warning("GPU not usable, falling back to CPU: %s", _GPU_STATE["problem"])
+    return _GPU_STATE["ok"]
+
+
+def gpu_problem() -> str | None:
+    """Why an NVIDIA GPU that is present could not be used (None if fine or absent)."""
+    has_gpu()
+    return _GPU_STATE.get("problem")
 
 
 def _device():

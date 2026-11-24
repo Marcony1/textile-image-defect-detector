@@ -47,6 +47,7 @@ class WorkerStatus:
     device: str = ""
     calibration: str = ""
     load_error: str | None = None
+    gpu_problem: str | None = None
 
 
 class InspectionWorker(threading.Thread):
@@ -109,7 +110,10 @@ class InspectionWorker(threading.Thread):
             import torch
             self.status.device = "GPU · " + torch.cuda.get_device_name(0)
         else:
-            self.status.device = "CPU (sin tarjeta gráfica NVIDIA: más lento)"
+            from ..models import gpu_problem
+            self.status.device = ("CPU: la tarjeta gráfica no es compatible con la versión instalada (ejecute INSTALAR de nuevo)"
+                                  if gpu_problem() else "CPU (sin tarjeta gráfica NVIDIA: más lento)")
+            self.status.gpu_problem = gpu_problem()
         cal = self.inspector.calibration
         self.status.calibration = (f"{cal['capture']} · {cal['n_photos']} fotos · {cal['date'][:10]} · escala {self.scale:.2f}"
                                    if cal else f"de fábrica (cámara de junio 2025) · escala {self.scale:.2f}")

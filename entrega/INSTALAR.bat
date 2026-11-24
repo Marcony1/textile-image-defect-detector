@@ -64,23 +64,63 @@ set "VPY=%ENTORNO%\Scripts\python.exe"
 "%VPY%" -m pip install --upgrade pip --quiet || goto error
 echo [2/4] Entorno listo en %ENTORNO%
 
-rem ---- 3. PyTorch: version para tarjeta NVIDIA o para procesador
+rem ---- 3. PyTorch segun la tarjeta grafica
+rem Cada version de PyTorch trae codigo solo para ciertas generaciones de tarjetas NVIDIA:
+rem   CUDA 12.1 (PyTorch 2.5.1): de la serie GTX 900 a la RTX 40
+rem   CUDA 12.8 (PyTorch 2.7.1): RTX 50 (arquitectura 12.x, "Blackwell") y anteriores recientes
+rem Se elige por la arquitectura y despues se PRUEBA en la tarjeta; si falla, se prueba la otra y al final el procesador.
+set "T_CU121=torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121"
+set "T_CU128=torch==2.7.1+cu128 torchvision==0.22.1+cu128 --index-url https://download.pytorch.org/whl/cu128"
+set "T_CPU=torch==2.5.1+cpu torchvision==0.20.1+cpu --index-url https://download.pytorch.org/whl/cpu"
+set "GPUOK=0"
 nvidia-smi >nul 2>nul
-if %errorlevel%==0 (
-  echo [3/4] Tarjeta grafica NVIDIA detectada: se instala la version con GPU
-  set "IDX=https://download.pytorch.org/whl/cu121"
-) else (
-  echo [3/4] Sin tarjeta NVIDIA: se instala la version para procesador - mas lenta
-  set "IDX=https://download.pytorch.org/whl/cpu"
+if errorlevel 1 goto torch_cpu
+set "GPUNAME=desconocida"
+set "GPUCC=0.0"
+for /f "tokens=1,2 delims=," %%A in ('nvidia-smi --query-gpu^=name^,compute_cap --format^=csv^,noheader 2^>nul') do (
+  set "GPUNAME=%%A"
+  set "GPUCC=%%B"
 )
-"%VPY%" -m pip install torch==2.5.1 torchvision==0.20.1 --index-url %IDX% || goto error
+set "CCMAJ=0"
+for /f "tokens=1 delims=. " %%M in ("%GPUCC%") do set "CCMAJ=%%M"
+echo [3/4] Tarjeta grafica: %GPUNAME% - arquitectura %GPUCC%
+set "PRIMERO=%T_CU121%"
+set "SEGUNDO=%T_CU128%"
+if %CCMAJ% GEQ 12 set "PRIMERO=%T_CU128%"
+if %CCMAJ% GEQ 12 set "SEGUNDO=%T_CU121%"
+if %CCMAJ% GEQ 1 if %CCMAJ% LSS 5 goto torch_vieja
+
+echo Instalando PyTorch para la tarjeta grafica...
+"%VPY%" -m pip install %PRIMERO% || goto error
+call :probar_gpu
+if "%GPUOK%"=="1" goto torch_ok
+echo.
+echo La version instalada no funciona con esta tarjeta. Probando la otra version de PyTorch...
+"%VPY%" -m pip install %SEGUNDO% || goto error
+call :probar_gpu
+if "%GPUOK%"=="1" goto torch_ok
+echo.
+echo AVISO: la tarjeta grafica no funciona con PyTorch (driver antiguo o tarjeta no compatible).
+echo Se usara el procesador: funciona, pero mas lento. Actualizar el driver de NVIDIA y
+echo volver a ejecutar INSTALAR puede resolverlo.
+goto torch_cpu
+
+:torch_vieja
+echo AVISO: esta tarjeta grafica es demasiado antigua para PyTorch; se usara el procesador.
+
+:torch_cpu
+echo [3/4] Se instala PyTorch para procesador - mas lento
+"%VPY%" -m pip install %T_CPU% || goto error
+
+:torch_ok
+if "%GPUOK%"=="1" echo        Tarjeta grafica verificada: funciona correctamente.
 
 rem ---- 4. Resto de librerias
 echo [4/4] Instalando librerias...
 "%VPY%" -m pip install -r programa\requirements.txt || goto error
 
 echo.
-"%VPY%" -c "import torch, timm, ultralytics, fastapi; print(' Prueba OK. Tarjeta grafica disponible:', 'SI' if torch.cuda.is_available() else 'NO (usara el procesador)')" || goto error
+"%VPY%" -c "import torch, timm, ultralytics, fastapi; import sys; sys.path.insert(0, 'programa'); from galia.models import has_gpu; print(' Prueba OK. PyTorch', torch.__version__, '- tarjeta grafica en uso:', 'SI' if has_gpu() else 'NO (usara el procesador)')" || goto error
 echo.
 echo ================================================================
 echo  Instalacion terminada. Ahora abra INICIAR.
@@ -124,6 +164,13 @@ echo  Si se repite, envie una foto de esta ventana al equipo de soporte.
 echo ================================================================
 pause
 exit /b 1
+
+:probar_gpu
+rem Convolucion real en la tarjeta: detecta "no kernel image is available" y drivers viejos
+set "GPUOK=0"
+"%VPY%" -c "import torch, torch.nn.functional as F; x = torch.randn(1, 3, 16, 16, device='cuda'); F.conv2d(x, torch.randn(4, 3, 3, 3, device='cuda')).sum().item()" >nul 2>nul
+if %errorlevel%==0 set "GPUOK=1"
+exit /b 0
 
 :buscar
 rem Busca un Python aceptable (PYOK) en: copia portatil, lanzador py, PATH, python.org, Miniconda/Anaconda
