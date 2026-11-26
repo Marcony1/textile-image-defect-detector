@@ -170,7 +170,7 @@ class InspectionWorker(threading.Thread):
             iid = self.store.add(file=job.path.name, decision=out["decision"], score=out["score"],
                                  threshold=out["threshold"],
                                  operating_point=self.operating_point if self.custom_threshold is None else "personalizado",
-                                 model_scores=out["model_scores"], defects=defects, top_defect=top,
+                                 model_scores=out["model_scores"], defects=defects, top_defect=top, probs=out.get("probs"),
                                  elapsed_ms=elapsed, image_path=str(dst))
             prev = self.archive / day / "previews" / f"{iid:07d}.jpg"
             self._render_preview(dst, out, defects, prev)

@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.4.0",
+    "fecha": "2026-11-26",
+    "titulo": "Probabilidades en el tablero",
+    "cambios": [
+      "El tablero muestra la probabilidad de defecto que da la red neuronal a cada recorte de 512 px: pase el ratón sobre la foto para verla; junto al score aparece la del recorte más sospechoso.",
+      "Probabilidad orientativa de defecto por toalla, P(defecto) «guía», ajustada con fotos de validación; la decisión OK / NO OK sigue usando el score y el umbral.",
+      "El panel de Exigencia indica desde qué probabilidad de defecto se marca NO OK con la posición elegida.",
+      "El reporte CSV incluye ambas probabilidades. Los historiales anteriores se actualizan solos al iniciar."
+    ]
+  },
+  {
     "version": "1.3.0",
     "fecha": "2026-11-25",
     "titulo": "Cámara Raspberry Pi HQ, versiones y novedades",

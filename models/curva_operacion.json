@@ -3,207 +3,248 @@
   {
    "threshold": 3.1646,
    "recall": 0.7959,
-   "false_alarms": 0.0924
+   "false_alarms": 0.0924,
+   "prob": 0.8247
   },
   {
    "threshold": 3.0855,
    "recall": 0.8027,
-   "false_alarms": 0.0924
+   "false_alarms": 0.0924,
+   "prob": 0.8113
   },
   {
    "threshold": 3.0064,
    "recall": 0.8027,
-   "false_alarms": 0.0955
+   "false_alarms": 0.0955,
+   "prob": 0.7971
   },
   {
    "threshold": 2.9273,
    "recall": 0.8027,
-   "false_alarms": 0.0987
+   "false_alarms": 0.0987,
+   "prob": 0.7822
   },
   {
    "threshold": 2.8482,
    "recall": 0.8095,
-   "false_alarms": 0.0987
+   "false_alarms": 0.0987,
+   "prob": 0.7665
   },
   {
    "threshold": 2.7691,
    "recall": 0.8095,
-   "false_alarms": 0.0987
+   "false_alarms": 0.0987,
+   "prob": 0.75
   },
   {
    "threshold": 2.69,
    "recall": 0.8231,
-   "false_alarms": 0.1019
+   "false_alarms": 0.1019,
+   "prob": 0.7328
   },
   {
    "threshold": 2.6109,
    "recall": 0.8299,
-   "false_alarms": 0.1019
+   "false_alarms": 0.1019,
+   "prob": 0.7148
   },
   {
    "threshold": 2.5318,
    "recall": 0.8299,
-   "false_alarms": 0.1051
+   "false_alarms": 0.1051,
+   "prob": 0.6961
   },
   {
    "threshold": 2.4527,
    "recall": 0.8299,
-   "false_alarms": 0.1051
+   "false_alarms": 0.1051,
+   "prob": 0.6768
   },
   {
    "threshold": 2.3736,
    "recall": 0.8367,
-   "false_alarms": 0.1083
+   "false_alarms": 0.1083,
+   "prob": 0.6568
   },
   {
    "threshold": 2.2945,
    "recall": 0.8435,
-   "false_alarms": 0.1146
+   "false_alarms": 0.1146,
+   "prob": 0.6363
   },
   {
    "threshold": 2.2154,
    "recall": 0.8503,
-   "false_alarms": 0.1178
+   "false_alarms": 0.1178,
+   "prob": 0.6152
   },
   {
    "threshold": 2.1363,
    "recall": 0.8571,
-   "false_alarms": 0.1178
+   "false_alarms": 0.1178,
+   "prob": 0.5937
   },
   {
    "threshold": 2.0572,
    "recall": 0.8571,
-   "false_alarms": 0.1178
+   "false_alarms": 0.1178,
+   "prob": 0.5719
   },
   {
    "threshold": 1.9781,
    "recall": 0.8571,
-   "false_alarms": 0.1178
+   "false_alarms": 0.1178,
+   "prob": 0.5497
   },
   {
    "threshold": 1.899,
    "recall": 0.8639,
-   "false_alarms": 0.1178
+   "false_alarms": 0.1178,
+   "prob": 0.5274
   },
   {
    "threshold": 1.8199,
    "recall": 0.8707,
-   "false_alarms": 0.121
+   "false_alarms": 0.121,
+   "prob": 0.5049
   },
   {
    "threshold": 1.7408,
    "recall": 0.8707,
-   "false_alarms": 0.1242
+   "false_alarms": 0.1242,
+   "prob": 0.4825
   },
   {
    "threshold": 1.6617,
    "recall": 0.8707,
-   "false_alarms": 0.1306
+   "false_alarms": 0.1306,
+   "prob": 0.4601
   },
   {
    "threshold": 1.5826,
    "recall": 0.8776,
-   "false_alarms": 0.1306
+   "false_alarms": 0.1306,
+   "prob": 0.4378
   },
   {
    "threshold": 1.5035,
    "recall": 0.8776,
-   "false_alarms": 0.1369
+   "false_alarms": 0.1369,
+   "prob": 0.4159
   },
   {
    "threshold": 1.4245,
    "recall": 0.8776,
-   "false_alarms": 0.1401
+   "false_alarms": 0.1401,
+   "prob": 0.3942
   },
   {
    "threshold": 1.3454,
    "recall": 0.898,
-   "false_alarms": 0.1497
+   "false_alarms": 0.1497,
+   "prob": 0.3729
   },
   {
    "threshold": 1.2663,
    "recall": 0.898,
-   "false_alarms": 0.1592
+   "false_alarms": 0.1592,
+   "prob": 0.3522
   },
   {
    "threshold": 1.1872,
    "recall": 0.9116,
-   "false_alarms": 0.172
+   "false_alarms": 0.172,
+   "prob": 0.3319
   },
   {
    "threshold": 1.1081,
    "recall": 0.9252,
-   "false_alarms": 0.1783
+   "false_alarms": 0.1783,
+   "prob": 0.3123
   },
   {
    "threshold": 1.029,
    "recall": 0.932,
-   "false_alarms": 0.1847
+   "false_alarms": 0.1847,
+   "prob": 0.2933
   },
   {
    "threshold": 0.9499,
    "recall": 0.9456,
-   "false_alarms": 0.1943
+   "false_alarms": 0.1943,
+   "prob": 0.275
   },
   {
    "threshold": 0.8708,
    "recall": 0.9456,
-   "false_alarms": 0.2038
+   "false_alarms": 0.2038,
+   "prob": 0.2575
   },
   {
    "threshold": 0.7917,
    "recall": 0.9456,
-   "false_alarms": 0.207
+   "false_alarms": 0.207,
+   "prob": 0.2407
   },
   {
    "threshold": 0.7126,
    "recall": 0.9456,
-   "false_alarms": 0.2166
+   "false_alarms": 0.2166,
+   "prob": 0.2246
   },
   {
    "threshold": 0.6335,
    "recall": 0.9456,
-   "false_alarms": 0.2357
+   "false_alarms": 0.2357,
+   "prob": 0.2094
   },
   {
    "threshold": 0.5544,
    "recall": 0.9456,
-   "false_alarms": 0.242
+   "false_alarms": 0.242,
+   "prob": 0.1949
   },
   {
    "threshold": 0.4753,
    "recall": 0.9456,
-   "false_alarms": 0.2611
+   "false_alarms": 0.2611,
+   "prob": 0.1811
   },
   {
    "threshold": 0.3962,
    "recall": 0.9456,
-   "false_alarms": 0.2898
+   "false_alarms": 0.2898,
+   "prob": 0.1682
   },
   {
    "threshold": 0.3171,
    "recall": 0.9592,
-   "false_alarms": 0.3121
+   "false_alarms": 0.3121,
+   "prob": 0.156
   },
   {
    "threshold": 0.238,
    "recall": 0.9728,
-   "false_alarms": 0.3567
+   "false_alarms": 0.3567,
+   "prob": 0.1445
   },
   {
    "threshold": 0.1589,
    "recall": 0.9728,
-   "false_alarms": 0.3981
+   "false_alarms": 0.3981,
+   "prob": 0.1337
   },
   {
    "threshold": 0.0798,
    "recall": 0.9796,
-   "false_alarms": 0.4427
+   "false_alarms": 0.4427,
+   "prob": 0.1237
   },
   {
    "threshold": 0.0007,
    "recall": 0.9932,
-   "false_alarms": 0.4841
+   "false_alarms": 0.4841,
+   "prob": 0.1143
   }
  ],
  "presets": {
@@ -213,5 +254,15 @@
  },
  "n_defect": 147,
  "n_ok": 314,
+ "probabilidad": {
+  "transform": "z_relativo",
+  "a": 7.42486,
+  "b": -2.04887,
+  "fit": "validación",
+  "n": 230,
+  "prevalencia": 0.3174,
+  "brier_test": 0.0953,
+  "brier_test_sin_modelo": 0.2177
+ },
  "note": "Estimado con fotos de validación y prueba de las cámaras de 2025 (ya calibradas). Con otra cámara o iluminación los valores reales pueden variar."
 }

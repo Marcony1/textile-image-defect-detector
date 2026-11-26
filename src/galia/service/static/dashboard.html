@@ -93,6 +93,9 @@ button:focus-visible, select:focus-visible, .btn:focus-visible, .row:focus-visib
 .badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 8px; padding: 6px 12px; font-size: 18px; color: #fff; }
 .badge.ok { background: var(--good); } .badge.nook { background: var(--critical); } .badge.err { background: var(--text-3); }
 .latest .over { position: absolute; left: 12px; top: 12px; }
+.tilebox { position: absolute; border: 2px solid #fff; outline: 1px solid rgba(0,0,0,.5); border-radius: 3px; pointer-events: none; }
+.tiletip { position: absolute; pointer-events: none; background: rgba(20,20,20,.88); color: #fff; font-size: 12px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+.prob-q { color: var(--text-3); font-size: 11.5px; }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--text-2); font-size: 13px; align-items: center; }
 .meta b { color: var(--text); font-weight: 600; }
 .gauge { position: relative; height: 8px; background: var(--surface-2); border-radius: 4px; width: 160px; display: inline-block; vertical-align: middle; }
@@ -270,6 +273,7 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
         <div><b id="est-rec">–</b><span>de las toallas con defecto se detectan</span></div>
         <div><b id="est-miss">–</b><span>de cada 100 con defecto se escaparían</span></div>
         <div><b id="est-fa">–</b><span>de las toallas buenas van a revisión</span></div>
+        <div id="est-prob-box" hidden><b id="est-prob">–</b><span>se marca NO OK desde esta probabilidad de defecto (guía)</span></div>
       </div>
       <div class="curve">
         <div class="curve-title">Lo que se gana y lo que cuesta</div>
@@ -553,12 +557,38 @@ function select(r, userClick) {
     const gauge = r.threshold > 0 ? (() => { const pct = Math.max(2, Math.min(100, r.score / (r.threshold * 2) * 100));
       return ` <span class="gauge" title="La marca negra es el umbral"><i style="width:${pct}%;background:var(--${cls === "nook" ? "critical" : "good"})"></i><u style="left:50%"></u></span>`; })() : "";
     meta += `<span>Score <b>${r.score.toFixed(3)}</b>${gauge} umbral ${r.threshold.toFixed(3)}</span>`;
+    if (r.prob_toalla != null) meta += `<span title="Estimación orientativa con fotos de validación (≈ 32 % con defecto). En planta, con menos defectos, la probabilidad real suele ser menor. La decisión usa el score y el umbral.">P(defecto) <b>≈ ${pct(r.prob_toalla)}</b> <span class="prob-q">guía</span></span>`;
+    if (r.prob_recorte_max != null) meta += `<span title="Probabilidad que da la red neuronal (sigmoide, promedio de las 2 redes) al recorte de 512 px más sospechoso. Pase el ratón sobre la foto para ver cada recorte.">Recorte más sospechoso <b>${pct(r.prob_recorte_max)}</b></span>`;
     meta += `<span>Análisis <b>${(r.elapsed_ms / 1000).toFixed(1)} s</b></span>`;
   } else meta += `<span>${esc(r.error || "")}</span>`;
   $("sel-meta").innerHTML = meta;
+  bindTileHover(r);
   const defs = (r.defects || []).filter(d => d.conf >= 0.25).sort((a, b) => b.conf - a.conf);
   $("sel-defects").innerHTML = defs.map(d => `<span class="chip">${esc(dname(d.cls))} · ${(d.conf * 100).toFixed(0)} %</span>`).join("");
   renderReviewButtons(r);
+}
+
+// hover over the photo: probability of the 512-px tile under the mouse (sigmoid of the networks)
+function bindTileHover(r) {
+  const box = $("imgbox"), img = box.querySelector("img"), pr = r.probs;
+  if (!img || !pr || !pr.tiles || !pr.tiles.length) return;
+  const frame = document.createElement("div"), tip = document.createElement("div");
+  frame.className = "tilebox"; tip.className = "tiletip"; frame.hidden = tip.hidden = true;
+  box.append(frame, tip);
+  img.addEventListener("mousemove", e => {
+    const ir = img.getBoundingClientRect(), br = box.getBoundingClientRect();
+    const k = Math.min(ir.width / pr.size[0], ir.height / pr.size[1]);  // object-fit: contain
+    const ox = ir.left - br.left + (ir.width - pr.size[0] * k) / 2, oy = ir.top - br.top + (ir.height - pr.size[1] * k) / 2;
+    const x = (e.clientX - br.left - ox) / k, y = (e.clientY - br.top - oy) / k;
+    let best = null;
+    for (const t of pr.tiles) if (x >= t[0] && x < t[2] && y >= t[1] && y < t[3] && (!best || t[4] > best[4])) best = t;
+    if (!best) { frame.hidden = tip.hidden = true; return; }
+    Object.assign(frame.style, { left: ox + best[0] * k + "px", top: oy + best[1] * k + "px", width: (best[2] - best[0]) * k + "px", height: (best[3] - best[1]) * k + "px" });
+    tip.textContent = `Recorte: ${(best[4] * 100).toFixed(best[4] < 0.01 ? 1 : 0)} % defecto`;
+    Object.assign(tip.style, { left: Math.min(e.clientX - br.left + 14, br.width - 150) + "px", top: Math.max(4, e.clientY - br.top - 30) + "px" });
+    frame.hidden = tip.hidden = false;
+  });
+  img.addEventListener("mouseleave", () => { frame.hidden = tip.hidden = true; });
 }
 
 function renderReviewButtons(r) {
@@ -768,6 +798,8 @@ function showEstimate(i) {
   $("est-rec").textContent = pct(p.recall);
   $("est-miss").textContent = Math.round((1 - p.recall) * 100);
   $("est-fa").textContent = pct(p.false_alarms);
+  $("est-prob-box").hidden = p.prob == null;
+  if (p.prob != null) $("est-prob").textContent = "≥ " + pct(p.prob);
   const changed = i !== nearestIdx(strict.state.curve.points, strict.state.threshold);
   $("strict-apply").disabled = !changed;
   $("strict-msg").textContent = changed ? "Sin aplicar" : (strict.state.custom ? "Ajuste personalizado activo" : "Ajuste recomendado activo");

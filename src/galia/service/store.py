@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS inspections (
     error        TEXT,
     review       TEXT,                   -- 'defecto_real' | 'falsa_alarma' | 'ok_confirmado' | 'defecto_no_detectado'
     review_note  TEXT,
-    review_ts    TEXT
+    review_ts    TEXT,
+    probs        TEXT                    -- JSON {towel: P(defecto) orientativa, tiles: [[x1,y1,x2,y2,p]], size: [w,h]}
 );
 CREATE INDEX IF NOT EXISTS idx_ts ON inspections(ts);
 """
@@ -45,6 +46,9 @@ class Store:
         with self._conn() as c:
             c.execute("PRAGMA journal_mode=WAL")
             c.executescript(SCHEMA)
+            cols = {r[1] for r in c.execute("PRAGMA table_info(inspections)")}
+            if "probs" not in cols:  # historial creado con una versión anterior
+                c.execute("ALTER TABLE inspections ADD COLUMN probs TEXT")
 
     @contextmanager
     def _conn(self):
@@ -59,8 +63,8 @@ class Store:
     # ------------------------------------------------------------------ writes
     def add(self, **row) -> int:
         row.setdefault("ts", datetime.now().isoformat(timespec="seconds"))
-        for k in ("model_scores", "defects"):
-            if k in row and not isinstance(row[k], str):
+        for k in ("model_scores", "defects", "probs"):
+            if k in row and row[k] is not None and not isinstance(row[k], str):
                 row[k] = json.dumps(row[k])
         cols = ", ".join(row)
         with self._conn() as c:
@@ -109,6 +113,10 @@ class Store:
         d = dict(r)
         for k in ("model_scores", "defects"):
             d[k] = json.loads(d[k]) if d.get(k) else ({} if k == "model_scores" else [])
+        d["probs"] = json.loads(d["probs"]) if d.get("probs") else None
+        pr = d["probs"] or {}
+        d["prob_toalla"] = pr.get("towel")
+        d["prob_recorte_max"] = max((t[4] for t in pr.get("tiles", [])), default=None)
         return d
 
     def get(self, iid: int) -> dict | None:

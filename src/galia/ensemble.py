@@ -65,6 +65,20 @@ class Ensemble:
             return cls(**json.load(f))
 
 
+def towel_probability(z: float, cal: dict | None, norm) -> float | None:
+    """Orientative P(defect) of a towel from its calibrated score ``z`` (fit on validation by
+    scripts/10_operating_curve.py). The decision itself always uses ``z`` and the threshold.
+
+    ``norm`` = (median_OK, IQR_OK) of the camera. ``z`` is first expressed as a fraction of the
+    largest score that camera can reach (all tiles at probability 1), so cameras whose IQR is
+    tiny (huge z) and cameras with a wide IQR share one curve."""
+    if not cal:
+        return None
+    med, iqr = norm
+    x = z * iqr / max(1 - med, 1e-6)
+    return float(1 / (1 + np.exp(-(cal["a"] * x + cal["b"]))))
+
+
 def fit_norm(val: pd.DataFrame, models) -> dict:
     """capture -> model -> (median, IQR) of the OK towels of that camera."""
     out = {}

@@ -14,7 +14,7 @@ import pandas as pd
 from PIL import Image
 
 from . import config as C
-from .ensemble import Ensemble
+from .ensemble import Ensemble, towel_probability  # noqa: F401  (re-exported)
 from .models import ClassifierTilePredictor, PatchcorePredictor, YoloTilePredictor
 
 DEFAULT_FILES = {
@@ -33,6 +33,7 @@ class TowelInspector:
         self.threshold = ensemble.thresholds[operating_point]
 
     calibration: dict | None = None  # contents of calibracion.json, if any
+    prob_cal: dict | None = None     # "probabilidad" block of curva_operacion.json, if any
     default_scale: float = 1.0
 
     @classmethod
@@ -54,7 +55,15 @@ class TowelInspector:
             ens.norm[cal["capture"]] = cal["norm"]
             ens.default_capture = cal["capture"]
             insp.calibration, insp.default_scale = cal, float(cal.get("scale", 1.0))
+        curve = d / "curva_operacion.json"
+        if curve.exists():
+            insp.prob_cal = json.loads(curve.read_text(encoding="utf-8")).get("probabilidad")
         return insp
+
+    def probability(self, z: float) -> float | None:
+        """Orientative P(defect) for score ``z`` with the active camera calibration."""
+        ens = self.ensemble
+        return towel_probability(z, self.prob_cal, ens.norm[ens.default_capture][ens.models[0]])
 
     def inspect(self, image, scale: float | None = None) -> dict:
         """``image``: path or RGB array from the production camera.
@@ -78,6 +87,12 @@ class TowelInspector:
                 if conf >= 0.10:
                     defects.append(dict(cls=C.CLASSES[int(cls)], conf=float(conf),
                                         box=[float(v) / scale for v in (x1, y1, x2, y2)]))
+        # probabilities shown to the operator: per tile (sigmoid of the networks) and per towel (guide)
+        tiles = []
+        if "cls" in raw and raw["cls"].tile_scores:
+            tiles = [[round(v / scale) for v in w[:4]] + [round(float(p), 4)] for w, p in raw["cls"].tile_scores]
+        probs = dict(towel=self.probability(score), tiles=tiles,
+                     size=[round(image.shape[1] / scale), round(image.shape[0] / scale)])
         return dict(decision="NO OK" if score >= self.threshold else "OK", score=score,
                     threshold=self.threshold, model_scores={m: r.score for m, r in raw.items()},
-                    defects=defects, raw=raw)
+                    defects=defects, probs=probs, raw=raw)

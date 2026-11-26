@@ -159,6 +159,16 @@ Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/
 
 **Versiones:** la versión del paquete y su historial de cambios viven en `src/galia/service/static/cambios.json` (la entrada más reciente va primero). De ahí salen el nombre del zip (`dist/Inspector_Toallas_v<versión>.zip`), la versión en el tablero (botón *Novedades*), la portada de `LEEME.pdf` y su sección 14. Para publicar una versión nueva: agregar una entrada al inicio de `cambios.json` y correr `python scripts/build_delivery.py`. La propuesta de estación de captura tiene su propia versión (`DOC_VERSION` en `scripts/build_propuesta.py` → `docs/propuesta_estacion_captura_v<versión>.pdf`).
 
+**Mantenimiento sin asistente de IA.** Un solo comando regenera todo lo derivado:
+
+```bash
+make todo                      # diagramas + curva + reportes + propuesta + zip   (sin make: python scripts/actualizar.py)
+make zip                       # solo el paquete
+make version V=1.4.1 T="Título" C="Cambio 1|Cambio 2"   # registra la versión (o: python scripts/nueva_version.py ...)
+```
+
+Flujo para entregar una versión: editar código o textos → `make version …` → `make todo` → probar el zip → commit.
+
 **Documentos (todos se regeneran con Python, sin correr ningún modelo):**
 
 | Documento | Fuente editable | Comando |

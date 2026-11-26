@@ -280,7 +280,7 @@ curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <tr><td class="n">4</td><td>Periodo</td><td>Qué datos se cuentan en indicadores y gráficas: turno (últimas 8 h), hoy, últimas 24 h o 7 días.</td></tr>
 <tr><td class="n">5</td><td>Exigencia</td><td>Abre el control para hacer la detección más o menos estricta (13.2). Dice "personalizada" si no está en el ajuste recomendado.</td></tr>
 <tr><td class="n">6</td><td>Cómo empezar</td><td>Panel con la demostración, análisis de una carpeta, ruta de la cámara, historial y etiquetas (13.3).</td></tr>
-<tr><td class="n">7</td><td>Exportar CSV</td><td>Descarga el reporte del periodo elegido en (4); se abre en Excel. Una fila por toalla: hora, archivo, decisión, score, umbral, tipo de defecto, revisión del operador.</td></tr>
+<tr><td class="n">7</td><td>Exportar CSV</td><td>Descarga el reporte del periodo elegido en (4); se abre en Excel. Una fila por toalla: hora, archivo, decisión, score, umbral, probabilidad de defecto (guía) y del recorte más sospechoso, tipo de defecto, revisión del operador.</td></tr>
 <tr><td class="n">8</td><td>Sonido</td><td>Pitido cada vez que una toalla sale NO OK. Se recuerda en esa computadora.</td></tr>
 <tr><td class="n">9</td><td>Avisos</td><td><b>Rojo</b>: varias NO OK seguidas (revisar máquina, lote o cámara) o el programa detenido. <b>Amarillo</b>: % de NO OK alto o fotos dañadas. <b>Azul</b>: no llegan fotos (¿línea detenida o cámara sin guardar?). Durante la demostración el aviso de % alto es normal.</td></tr>
 <tr><td class="n">10</td><td>Toallas inspeccionadas</td><td>Total del periodo. Si hubo fotos con error, se indica abajo.</td></tr>
@@ -289,7 +289,7 @@ curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <tr><td class="n">13</td><td>Tiempo de análisis</td><td>Segundos promedio por foto. ≈ 1 s con tarjeta gráfica; 8–15 s sin ella.</td></tr>
 <tr><td class="n">14</td><td>NO OK sin revisar</td><td>Toallas NO OK que el operador todavía no confirmó (17).</td></tr>
 <tr><td class="n">15</td><td>Foto de la toalla</td><td>La última toalla (o la que se elija en la lista 18) con su decisión. En las NO OK, la <b>mancha de color</b> marca la zona sospechosa y los <b>recuadros</b> los defectos que el sistema reconoce con su tipo. "Seguir la última" vuelve a mostrar cada toalla nueva.</td></tr>
-<tr><td class="n">16</td><td>Datos de la toalla</td><td>Archivo, <b>score</b> (qué tan sospechosa es) y una barra con la marca negra del <b>umbral</b>: a la derecha de la marca = NO OK. Abajo, los tipos de defecto encontrados con su confianza.</td></tr>
+<tr><td class="n">16</td><td>Datos de la toalla</td><td>Archivo, <b>score</b> (qué tan sospechosa es) y una barra con la marca negra del <b>umbral</b>: a la derecha de la marca = NO OK. <b>P(defecto) guía</b>: probabilidad aproximada de que la toalla tenga defecto (ver 13.5). <b>Recorte más sospechoso</b>: probabilidad que la red neuronal da al pedazo de 512 px más sospechoso. Al pasar el ratón sobre la foto se marca cada recorte con su probabilidad. Abajo, los tipos de defecto encontrados con su confianza.</td></tr>
 <tr><td class="n">17</td><td>Revisión del operador</td><td>En NO OK: <b>Defecto real</b> (tecla D) o <b>Falsa alarma</b> (F). En OK: <b>OK correcto</b> (O) o <b>Tenía defecto</b> (X). <b>Etiquetar</b> (E) abre el editor para marcar dónde está el defecto (13.4).</td></tr>
 <tr><td class="n">18</td><td>Últimas inspecciones</td><td>Las 100 toallas más recientes: hora, decisión, tipo de defecto y estado de revisión. Clic en una para verla en (15). Con el teclado: Tab para moverse y Enter para abrir.</td></tr>
 <tr><td class="n">19</td><td>Toallas por hora</td><td>Barras de OK (verde) y NO OK (rojo) por hora (por día en "7 días"). Pase el ratón sobre una barra para ver los números.</td></tr>
@@ -302,7 +302,7 @@ curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <table>
 <tr><th class="n">#</th><th>Elemento</th><th>Qué hace</th></tr>
 <tr><td class="n">1</td><td>Control deslizante</td><td>A la izquierda, menos toallas buenas a revisión pero se escapan más defectos; a la derecha, lo contrario. Las marcas indican el ajuste recomendado y los puntos de 90 % y 98 %.</td></tr>
-<tr><td class="n">2</td><td>Efecto estimado</td><td>Para la posición elegida: % de toallas con defecto que se detectan, cuántas de cada 100 se escaparían y % de toallas buenas que van a revisión.</td></tr>
+<tr><td class="n">2</td><td>Efecto estimado</td><td>Para la posición elegida: % de toallas con defecto que se detectan, cuántas de cada 100 se escaparían, % de toallas buenas que van a revisión y desde qué probabilidad de defecto (guía) se marca NO OK.</td></tr>
 <tr><td class="n">3</td><td>Lo que se gana y lo que cuesta</td><td>Cada punto de la línea es una posición del control. El punto naranja es la posición elegida; el círculo hueco, el ajuste activo. Más arriba = más defectos detectados; más a la derecha = más revisiones. A partir de cierto punto, cada defecto extra detectado cuesta muchas revisiones. Clic en la línea para elegir ese punto.</td></tr>
 <tr><td class="n">4</td><td>Aplicar</td><td>Activa el ajuste. Vale para las toallas que lleguen desde ese momento y se conserva al reiniciar. Cada inspección guarda el umbral con el que se decidió.</td></tr>
 <tr><td class="n">5</td><td>Volver al recomendado</td><td>Regresa al ajuste de fábrica (<code>ajuste</code> en la configuración).</td></tr>
@@ -337,6 +337,13 @@ curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <li>Las etiquetas se guardan en la carpeta <code>etiquetas/</code> (foto original + archivo de cajas + registro con fecha), en el formato que usa el sistema para entrenar. Volver a guardar una foto reemplaza sus etiquetas anteriores.</li>
 <li>Las fotos de la <b>demostración no se pueden etiquetar</b>: son fotos de prueba del sistema y deben quedar fuera del entrenamiento. Sirven para practicar con el editor.</li>
 <li>Al terminar la prueba, envíenos el archivo de <b>Exportar etiquetas</b> (sección 9).</li>
+</ul>
+
+<h3>13.5 Probabilidades: qué significan</h3>
+<ul>
+<li><b>Probabilidad por recorte.</b> La red neuronal revisa la toalla en pedazos de 512 × 512 px y a cada uno le da una probabilidad de defecto (función sigmoide, promedio de las 2 redes). Es lo que se ve al pasar el ratón sobre la foto y lo que pinta el mapa de calor.</li>
+<li><b>P(defecto) de la toalla (guía).</b> Se calcula a partir del score con una curva ajustada en fotos de validación, donde ≈ 32 % de las toallas tenían defecto. En la línea, donde hay menos defectos, la probabilidad real suele ser <b>menor</b> que la mostrada. Sirve para ordenar y comparar toallas, no como cifra exacta.</li>
+<li><b>La decisión no cambia.</b> OK / NO OK sigue saliendo del score y el umbral. El control de Exigencia mueve el umbral; el panel muestra a qué probabilidad equivale (con el ajuste recomendado, NO OK desde ≈ 30 %). El umbral es bajo a propósito: dejar pasar un defecto cuesta más que revisar una toalla buena.</li>
 </ul>
 
 <h2 id="s14" class="pb">14. Novedades de cada versión</h2>

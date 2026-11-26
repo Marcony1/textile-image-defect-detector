@@ -140,9 +140,12 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
             pass
 
     def threshold_state() -> dict:
+        c = curve
+        if c and worker.inspector is not None and worker.inspector.prob_cal:  # equivalence with the ACTIVE camera calibration
+            c = dict(c, points=[dict(pt, prob=round(worker.inspector.probability(pt["threshold"]), 4)) for pt in c["points"]])
         return dict(threshold=worker.threshold, default=worker.default_threshold,
                     custom=worker.custom_threshold is not None, operating_point=worker.operating_point,
-                    model_loaded=worker.status.model_loaded, curve=curve)
+                    model_loaded=worker.status.model_loaded, curve=c)
 
     @app.get("/api/threshold")
     def get_threshold():
@@ -418,7 +421,8 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
     def export(window: str = "hoy"):
         rows = store.recent(100000, window_start(window))
         buf = io.StringIO()
-        cols = ["id", "ts", "file", "decision", "score", "threshold", "top_defect", "elapsed_ms", "review",
+        cols = ["id", "ts", "file", "decision", "score", "threshold", "prob_toalla", "prob_recorte_max", "top_defect",
+                "elapsed_ms", "review",
                 "review_note", "image_path", "error"]
         w = csv.DictWriter(buf, cols, extrasaction="ignore")
         w.writeheader()
