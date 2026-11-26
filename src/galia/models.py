@@ -116,6 +116,11 @@ class YoloTilePredictor:
 
 # ---------------------------------------------------------------- Tile classifier
 def build_classifier(arch: str = "efficientnet_b0", pretrained: bool = True):
+    """``arch`` = a timm model name, or ``seg:<timm name>`` for the box-supervised segmenter
+    (galia.segnet), which also outputs one logit per tile."""
+    if arch.startswith("seg:"):
+        from .segnet import SegTileNet
+        return SegTileNet(arch[4:], pretrained=pretrained)
     import timm
 
     return timm.create_model(arch, pretrained=pretrained, num_classes=1)

@@ -1,0 +1,6 @@
+{
+  "weights": [
+    "models/tile_cls_resnet50_basic_s7.pt"
+  ],
+  "tta": false
+}

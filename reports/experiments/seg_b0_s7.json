@@ -1,0 +1,6 @@
+{
+  "weights": [
+    "models/tile_seg_efficientnet_b0_basic_s7.pt"
+  ],
+  "tta": false
+}
