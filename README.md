@@ -76,6 +76,17 @@ foto de la toalla (1 por pieza)
 
 ---
 
+
+### La red neuronal del clasificador
+
+EfficientNet-B0 (≈ 4.0 M parámetros, preentrenada en ImageNet) sobre recortes de 512 × 512; dos copias con distinto entrenamiento forman el ensamble. Diagramas generados con `python docs/diagramas/generar_diagramas.py` (dimensiones tomadas de `timm`):
+
+![De la foto a la decisión](docs/diagramas/pipeline_decision.svg)
+
+![EfficientNet-B0 sobre un recorte de 512 px](docs/diagramas/cnn_efficientnet_b0.svg)
+
+![Bloque MBConv](docs/diagramas/bloque_mbconv.svg)
+
 ## Datos
 
 `data/` está en `.gitignore` por privacidad de las imágenes.
