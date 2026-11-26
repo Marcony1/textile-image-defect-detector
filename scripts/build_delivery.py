@@ -1,6 +1,6 @@
 """Arma la carpeta de entrega para la empresa: programa + modelos + demo + instrucciones.
 
-    python scripts/build_delivery.py                # -> dist/Inspector_Toallas.zip (lo único que se entrega)
+    python scripts/build_delivery.py                # -> dist/Inspector_Toallas_v<versión>.zip (lo único que se entrega)
     python scripts/build_delivery.py --carpeta      # además deja la carpeta descomprimida en dist/Inspector_Toallas
 
 Se arma en una carpeta temporal, así nunca choca con una copia abierta o instalada en dist/.
@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from galia import config as C  # noqa: E402
 from galia.data import load_manifest  # noqa: E402
+from galia.service.version import CHANGES, VERSION  # noqa: E402
 
 ENTREGA = ROOT / "entrega"
 GALIA_MODULES = ["__init__.py", "config.py", "ensemble.py", "inference.py", "models.py", "roi.py", "tiling.py",
@@ -83,14 +84,32 @@ def add_portable_python(dest: Path):
     print(f"  python311: Python {out.stdout.strip()} portátil incluido")
 
 
+def novedades_html() -> str:
+    from html import escape
+    parts = []
+    for c in CHANGES:
+        items = "".join(f"<li>{escape(x)}</li>" for x in c["cambios"])
+        parts.append(f"<h3>Versión {escape(c['version'])} · {escape(c['fecha'])} · {escape(c['titulo'])}</h3><ul>{items}</ul>")
+    return "\n".join(parts)
+
+
 def build_pdf(html: Path, pdf: Path):
     if not Path(EDGE).exists():
         print("  (Edge no encontrado: solo se genera el HTML)")
         return
-    prof = Path(tempfile.gettempdir()) / "galia_edgeprof"
+    import time
+
+    prof = Path(tempfile.mkdtemp(prefix="edge_"))
     subprocess.run([EDGE, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-pdf-header-footer",
-                    f"--print-to-pdf={pdf}", html.resolve().as_uri()], timeout=120,
+                    f"--print-to-pdf={pdf}", html.resolve().as_uri()], timeout=180,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(90):  # Edge a veces se relanza (actualización pendiente): esperar a que aparezca el PDF
+        if pdf.exists() and pdf.stat().st_size > 10_000:
+            time.sleep(1)
+            break
+        time.sleep(1)
+    if not pdf.exists():
+        raise SystemExit(f"Edge no generó {pdf.name}")
 
 
 def main():
@@ -111,9 +130,10 @@ def main():
     (prog / "galia" / "service" / "static").mkdir(parents=True)
     for m in GALIA_MODULES:
         shutil.copy2(C.PROJECT_ROOT / "src" / "galia" / m, prog / "galia" / m)
-    for f in ["__init__.py", "app.py", "store.py", "worker.py", "labels.py", "plc.py"]:
+    for f in ["__init__.py", "app.py", "store.py", "worker.py", "labels.py", "plc.py", "version.py"]:
         shutil.copy2(ROOT / "src" / "galia" / "service" / f, prog / "galia" / "service" / f)
-    shutil.copy2(ROOT / "src" / "galia" / "service" / "static" / "dashboard.html", prog / "galia" / "service" / "static")
+    for f in ["dashboard.html", "cambios.json"]:
+        shutil.copy2(ROOT / "src" / "galia" / "service" / "static" / f, prog / "galia" / "service" / "static")
     for f in ["iniciar.py", "calibrar.py", "probar_plc.py", "requirements.txt"]:
         shutil.copy2(ENTREGA / "programa" / f, prog / f)
 
@@ -164,12 +184,18 @@ def main():
         (ENTREGA / "guia" / m.group(1)).read_bytes()).decode(), html)
     meses = "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split()
     html = html.replace("{{FECHA}}", f"{meses[date.today().month - 1]} {date.today().year}")
+    html = html.replace("{{VERSION}}", VERSION).replace("{{NOVEDADES}}", novedades_html())
+    (out / f"VERSION_{VERSION}.txt").write_text(
+        f"Inspector de toallas - versión {VERSION} ({CHANGES[0]['fecha']})\r\n"
+        "Novedades: botón «Novedades» del tablero o sección 14 de LEEME.pdf.\r\n", encoding="utf-8")
     (out / "LEEME.html").write_text(html, encoding="utf-8")
     build_pdf(out / "LEEME.html", out / "LEEME.pdf")
 
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file()) / 1e6
     z = Path(shutil.make_archive(str(staging / "Inspector_Toallas"), "zip", staging, out.name))
-    final = dist / "Inspector_Toallas.zip"
+    final = dist / f"Inspector_Toallas_v{VERSION}.zip"
+    for old in dist.glob("Inspector_Toallas*.zip"):  # una sola versión en dist/, sin confusiones
+        old.unlink()
     shutil.move(str(z), final)
     print(f"zip: {final} ({final.stat().st_size / 1e6:.0f} MB; {size:.0f} MB descomprimido)")
     if args.carpeta:

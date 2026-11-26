@@ -18,12 +18,15 @@ td.c { text-align: center; }
 
 <span class="audience">Propuesta técnica · equipo de montaje y mantenimiento</span>
 <h1>Estación de captura de fotos para la inspección automática de toallas</h1>
-<div class="meta">Galia Textil · Proyecto de inspección por visión · noviembre 2026</div>
+<div class="meta"><b>Versión 1.1</b> · Galia Textil · Proyecto de inspección por visión · noviembre 2026</div>
 
-<p class="lead">El software de inspección ya funciona: analiza la foto de cada toalla en ≈ 1 s, la decide OK / NO OK y avisa al PLC. Lo que más limita hoy su precisión es <b>la foto</b>: luz variable, resolución justa y una sola cara. Este documento propone cómo construir la estación que toma las fotos, en dos niveles. Incluye diagramas, la función de cada pieza y una guía general de montaje.</p>
+<p class="lead">El software de inspección ya funciona: analiza la foto de cada toalla en ≈ 1 s, la decide OK / NO OK y avisa al PLC. Lo que más limita hoy su precisión es <b>la foto</b>: luz variable, resolución justa y una sola cara. Este documento propone cómo construir la estación que toma las fotos: un piloto con la cámara disponible y dos niveles de producción, más cómo hacer visible cada tipo de defecto y cómo diseñar la banda. Incluye diagramas, la función de cada pieza y una guía general de montaje.</p>
+
+<div class="box warn"><b>Cambios respecto a la versión 1.0</b>Nuevos: §2 cómo hacer visible cada tipo de defecto (luz UV, infrarrojo, cámara térmica, láser 3D); §3 piloto con la cámara Raspberry Pi HQ disponible; §6 diseño de la banda y qué pasa si se detiene o no; piezas del piloto en §8. La estación de área industrial pasa a ser la estación 1 de producción inicial.</div>
 
 <div class="box"><b>Resumen</b>
-<b>Estación 1 · Piloto con cámara de área.</b> Una cámara a color de 20 MP sobre la banda, dentro de un encierro, con <b>dos tipos de luz que se disparan una tras otra</b> (difusa y rasante): dos fotos por toalla. Es rápida de montar y usa el PLC y la PC con GPU que ya existen. Mejora sobre todo manchas, teñido, hilos sueltos y falsas alarmas.<br>
+<b>Piloto · Cámara Raspberry Pi HQ.</b> La cámara disponible (12 MP, a color) en un encierro con luz fija, con la banda detenida un instante en cada toalla. Sirve para la prueba y para comparar técnicas de iluminación.<br>
+<b>Estación 1 · Cámara industrial de área.</b> Una cámara a color de 20 MP con obturador global sobre la banda, dentro de un encierro, con <b>dos tipos de luz que se disparan una tras otra</b> (difusa y rasante): dos fotos por toalla, sin detener la banda. Usa el PLC y la PC con GPU que ya existen. Mejora sobre todo manchas, teñido, hilos sueltos y falsas alarmas.<br>
 <b>Estación 2 · Producción con cámaras lineales.</b> Dos cámaras de barrido lineal: una ve la cara superior y otra la inferior, a través del hueco entre dos bandas, sin voltear la toalla. Más resolución, cualquier largo de toalla y separación automática. Es el paso siguiente si el piloto confirma el beneficio.</div>
 
 <h2>1. Qué necesita "ver" el sistema</h2>
@@ -87,7 +90,92 @@ td.c { text-align: center; }
 
 <div class="box warn"><b>Toallas azules y oscuras</b>El rizo azul refleja poca luz roja y verde. Una cámara monocromática (en blanco y negro) o una luz débil la ve casi negra y sin contraste; probablemente por eso la prueba anterior no detectaba defectos en telas azules. La solución: <b>cámara a color</b>, luz blanca potente y estable, y una exposición ajustada para que la toalla quede en tonos medios, no oscura. Todas las fotos con que se entrenó nuestro sistema son de toallas azules y funciona con ellas. Otros colores se deben probar.</div>
 
-<h2>2. Estación 1 · Piloto con cámara de área</h2>
+
+<h2>2. Cómo hacer visible cada tipo de defecto</h2>
+<p>El sistema solo puede aprender lo que la cámara ve. La regla es elegir la luz (y, si hace falta, el tipo de sensor) que haga que el defecto <b>contraste fuertemente</b> con la tela buena. Con contraste alto, el modelo necesita menos ejemplos y comete menos errores. Se ordena de lo más probado y económico a lo más experimental.</p>
+<table>
+<tr><th>Defecto</th><th>Técnica principal</th><th>Complemento o técnica avanzada</th><th>Por qué funciona</th></tr>
+<tr><td>Mancha de aceite o grasa</td><td>Luz difusa blanca + cámara a color + <b>polarización cruzada</b></td><td><b>Luz ultravioleta (UV-A, 365 nm)</b> + filtro en la cámara que bloquea el UV</td><td>Muchos aceites, grasas y residuos <b>fluorescen</b> (brillan) bajo UV: la mancha aparece brillante sobre fondo oscuro, aunque a simple vista apenas se note.</td></tr>
+<tr><td>Óxido, tierra, manchas de color</td><td>Luz difusa con color estable + tarjeta gris de referencia</td><td>Infrarrojo cercano (850 nm)</td><td>Cambio de color o brillo. En infrarrojo cercano muchos tintes se vuelven "transparentes" y quedan a la vista manchas que el color de la toalla esconde.</td></tr>
+<tr><td>Humedad, zonas mojadas</td><td>Luz difusa</td><td><b>Termografía activa</b> (ver abajo)</td><td>La zona húmeda se enfría al evaporarse y se ve distinta en una cámara térmica.</td></tr>
+<tr><td>Teñido (franjas, tono)</td><td>Luz difusa <b>muy pareja</b>, cámara a color, exposición y balance de blancos fijos, tarjeta gris</td><td>Cámara multiespectral (varias bandas de color)</td><td>Son diferencias de tono muy leves en áreas grandes: cualquier variación de luz las tapa. La uniformidad de la luz es lo que más importa.</td></tr>
+<tr><td>Hilo suelto o atrapado</td><td><b>Luz rasante desde dos direcciones</b> (a lo largo y a lo ancho)</td><td>Contraluz en las orillas (el hilo se ve como silueta); perfil 3D con línea láser</td><td>El hilo sobresale del rizo y proyecta sombra. Con una sola dirección, los hilos paralelos a la luz casi no dan sombra.</td></tr>
+<tr><td>Costura (saltada, abierta, torcida)</td><td>Luz rasante + más resolución en orillas y esquinas</td><td>Segunda cámara o lente más cerrado solo para orillas; línea láser 3D</td><td>Las costuras están en las orillas y son finas: necesitan más píxeles por milímetro que el centro de la toalla.</td></tr>
+<tr><td>Tejido (hoyo, ralo, rizo dañado)</td><td>Luz rasante</td><td><b>Contraluz</b> (luz que atraviesa la toalla)</td><td>Donde falta tela pasa más luz. En toallas gruesas funciona sobre todo en orillas y dobladillos.</td></tr>
+<tr><td>Empalme</td><td>Luz rasante + difusa</td><td>Contraluz (cambio de densidad)</td><td>Cambio de textura o de grosor a lo ancho de la toalla.</td></tr>
+</table>
+
+<h3>2.1 La idea de la cámara térmica (termografía activa)</h3>
+<p>Consiste en <b>calentar la toalla</b> de forma pareja (lámpara infrarroja o pulso de aire caliente) y, segundos después, tomarla con una <b>cámara térmica</b>. Las zonas con distinta humedad, grosor, densidad o con aceite se calientan y enfrían a distinto ritmo y se ven como manchas en la imagen térmica.</p>
+<ul>
+<li><b>Dónde puede ayudar:</b> manchas húmedas, zonas más gruesas o más delgadas, empalmes, y algunas manchas de aceite.</li>
+<li><b>Límites:</b> las cámaras térmicas tienen poca resolución (de 160 × 120 a 640 × 480 píxeles; sobre 1 m de toalla son 1.5–6 mm por píxel), así que <b>no sirven para hilos ni costuras</b>. Las manchas de tinte casi no cambian el calor, así que no se verían. Además se necesita calentamiento y tiempos muy controlados, y las cámaras térmicas de buena resolución son caras.</li>
+<li><b>Recomendación:</b> probarla como <b>experimento</b> en la etapa 0, con una cámara térmica prestada o rentada (o una térmica para celular) y una docena de toallas con manchas conocidas, antes de invertir. Para aceite y grasa, la <b>luz UV</b> suele ser más barata y más efectiva: conviene probar las dos.</li>
+</ul>
+
+<h3>2.2 Otras técnicas</h3>
+<ul>
+<li><b>Polarización cruzada:</b> un filtro polarizador en la luz y otro girado 90° en la cámara eliminan los brillos del rizo y de la banda. Mejora casi todos los defectos de color y no tiene costo de operación.</li>
+<li><b>Infrarrojo cercano (850 nm):</b> la cámara Raspberry Pi HQ trae un filtro que bloquea el infrarrojo y se puede quitar, aunque sin vuelta atrás. Con ese filtro quitado y luz de 850 nm se puede probar en una cámara de prueba.</li>
+<li><b>Perfil 3D con línea láser:</b> una línea láser sobre la toalla y una cámara en ángulo miden la altura de la superficie, lo que revela hilos levantados, dobleces y costuras salidas. Es técnica de producción avanzada, no para el piloto.</li>
+<li><b>Contaminación metálica</b> (agujas, grapas): no es un problema de visión. Se detecta con un <b>detector de metales</b> en la banda.</li>
+</ul>
+<div class="box"><b>Cómo decidir qué vale la pena</b>En la etapa 0 se toma el mismo juego de toallas (buenas y con cada tipo de defecto) con cada luz o técnica, y se compara qué defectos se ven mejor. Las técnicas que no muestren una diferencia clara se descartan antes de comprar equipo definitivo.</div>
+
+
+
+<h2>3. Piloto con la cámara Raspberry Pi High Quality</h2>
+<p>La cámara disponible para el piloto es la <b>Raspberry Pi High Quality Camera</b>: sensor Sony IMX477, 12.3 MP (4056 × 3040 píxeles), a color, lentes intercambiables (montura C/CS). Se conecta a una <b>Raspberry Pi</b> por un cable plano. La Pi <b>toma</b> la foto y la <b>envía por la red</b> a la PC con la tarjeta gráfica, que la analiza.</p>
+<figure class="fig">
+<svg viewBox="0 -6 760 196" role="img" aria-label="Conexión del piloto: sensor y PLC hacia un optoacoplador, la Raspberry Pi con la cámara HQ, la red hacia la PC inspector y el regreso de la decisión al PLC por Modbus TCP">
+  <defs><marker id="p1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#1b1b1a"/></marker>
+  <marker id="p2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#2a78d6"/></marker></defs>
+  <g font-size="12.5">
+    <rect x="10" y="20" width="120" height="50" rx="6" fill="#e8f1fc" stroke="#2a78d6" stroke-width="1.5"/><text x="70" y="42" text-anchor="middle" class="bd">PLC</text><text x="70" y="58" text-anchor="middle" class="sm">+ sensor de presencia</text>
+    <rect x="170" y="20" width="120" height="50" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="230" y="42" text-anchor="middle">Optoacoplador</text><text x="230" y="58" text-anchor="middle" class="sm">24 V ↔ 3.3 V</text>
+    <rect x="330" y="20" width="150" height="50" rx="6" fill="#f4f4f1" stroke="#52514e"/><text x="405" y="42" text-anchor="middle">Raspberry Pi</text><text x="405" y="58" text-anchor="middle" class="sm">+ cámara HQ + lente</text>
+    <rect x="530" y="20" width="200" height="50" rx="6" fill="#e7f6e7" stroke="#0ca30c" stroke-width="1.5"/><text x="630" y="42" text-anchor="middle" class="bd">PC Inspector</text><text x="630" y="58" text-anchor="middle" class="sm">GPU · tablero en vivo</text>
+  </g>
+  <g stroke="#1b1b1a" stroke-width="1.5" fill="none">
+    <path d="M130 38 L168 38" marker-end="url(#p1)"/><path d="M290 38 L328 38" marker-end="url(#p1)"/>
+    <path d="M328 56 L290 56" marker-end="url(#p1)"/><path d="M168 56 L130 56" marker-end="url(#p1)"/>
+  </g>
+  <g stroke="#2a78d6" stroke-width="1.8" fill="none">
+    <path d="M480 45 L528 45" marker-end="url(#p2)"/>
+    <path d="M630 70 L630 130 L70 130 L70 72" marker-end="url(#p2)"/>
+  </g>
+  <g class="sm">
+    <text x="149" y="13" text-anchor="middle">disparo</text><text x="309" y="13" text-anchor="middle">GPIO 17</text>
+    <text x="149" y="88" text-anchor="middle">foto tomada</text><text x="309" y="88" text-anchor="middle">pin listo</text>
+    <text x="505" y="13" text-anchor="middle" fill="#2a78d6">foto por red</text>
+    <text x="250" y="150" fill="#2a78d6">Modbus TCP: decisión, número de toalla y estado (registros 0–13)</text>
+  </g>
+  <text x="10" y="180" class="sm">Negro: señales digitales (siempre a través del optoacoplador) · Azul: red Ethernet</text>
+</svg>
+<figcaption>Figura 2. Conexiones del piloto. La señal "foto tomada" solo hace falta si la banda se detiene en cada toalla.</figcaption>
+</figure>
+
+<table>
+<tr><th>Aspecto</th><th>Cámara Raspberry Pi HQ</th><th>Qué implica</th></tr>
+<tr><td>Resolución</td><td>4056 × 3040 (12.3 MP)</td><td>Toalla de mano, campo ≈ 100 × 75 cm: ≈ 0.25 mm/px (igual que las fotos de entrenamiento). Toalla de baño, campo ≈ 150 cm: ≈ 0.37 mm/px; harían falta 2 cámaras.</td></tr>
+<tr><td>Color</td><td>Sí</td><td>Bien para manchas, teñido y toallas azules.</td></tr>
+<tr><td>Obturador</td><td><b>De barrido</b> (lee la imagen en ≈ 0.1 s)</td><td>Con la toalla en movimiento sale deformada: <b>detener la banda</b>, o encierro oscuro + destello (sección 6).</td></tr>
+<tr><td>Ajustes automáticos</td><td>Exposición y balance automáticos</td><td>El programa de captura los mide una vez y los deja <b>fijos</b>.</td></tr>
+<tr><td>Parpadeo de la luz</td><td>Sensible al parpadeo de 50/60 Hz</td><td>Use LED de <b>corriente continua sin parpadeo</b> (no fluorescentes ni LED baratos de 127 V), o aparecen franjas en la foto.</td></tr>
+<tr><td>Disparo</td><td>Pin GPIO de la Pi</td><td>Señal del PLC o del sensor a través de un optoacoplador; nunca 24 V directo a la Pi.</td></tr>
+</table>
+<p><b>Lente y altura de montaje</b> para un campo de ≈ 1 m de ancho (sensor de 6.3 × 4.7 mm):</p>
+<table>
+<tr><th>Lente</th><th>Altura de la cámara sobre la toalla</th><th>Comentario</th></tr>
+<tr><td>6 mm (montura CS, el de Raspberry Pi)</td><td class="n">≈ 1.0 m</td><td>Compacto; algo de distorsión en las orillas.</td></tr>
+<tr><td>8 mm (montura C)</td><td class="n">≈ 1.3 m</td><td>Buen equilibrio.</td></tr>
+<tr><td>12 mm (montura C)</td><td class="n">≈ 2.0 m</td><td>Menos distorsión; estructura más alta.</td></tr>
+<tr><td>16 mm (montura C, el de Raspberry Pi)</td><td class="n">≈ 2.5 m</td><td>Muy poca distorsión; requiere estructura alta.</td></tr>
+</table>
+<p><b>Dos luces con la Pi:</b> para tomar una foto con luz difusa y otra con rasante, la Pi puede encender cada luz mediante un relé o un módulo MOSFET. El programa de captura actual toma una foto por toalla; la toma con dos luces se agregará cuando se monte la estación. Las instrucciones del programa (LEEME, sección 7) explican paso a paso cómo preparar la Pi, el lente, el cableado y el envío de fotos.</p>
+
+
+<h2>4. Estación 1 · Cámara industrial de área</h2>
 <p>Una cámara toma la toalla completa de un solo disparo mientras pasa por la banda. La luz es estroboscópica: destellos de microsegundos que "congelan" el movimiento, así que no hace falta detener la banda. Por cada toalla se toman <b>dos fotos seguidas</b>: una con luz difusa y otra con luz rasante.</p>
 
 <figure class="fig">
@@ -146,10 +234,10 @@ td.c { text-align: center; }
   <text x="586" y="264" class="sm">(referencia de color)</text>
   <line x1="584" y1="258" x2="530" y2="282" stroke="#52514e"/>
 </svg>
-<figcaption>Figura 2. Estación 1, vista lateral. La cámara queda perpendicular a la banda, centrada sobre el campo. Las luces difusas se disparan en la foto A y la rasante en la foto B.</figcaption>
+<figcaption>Figura 3. Estación 1, vista lateral. La cámara queda perpendicular a la banda, centrada sobre el campo. Las luces difusas se disparan en la foto A y la rasante en la foto B.</figcaption>
 </figure>
 
-<h3>2.1 Cómo se toman las dos fotos</h3>
+<h3>4.1 Cómo se toman las dos fotos</h3>
 <figure class="fig">
 <svg viewBox="0 0 760 230" role="img" aria-label="Diagrama de tiempos: el sensor detecta la toalla, se dispara luz difusa con la foto A y 40 milisegundos después luz rasante con la foto B">
   <g class="sm">
@@ -169,7 +257,7 @@ td.c { text-align: center; }
   <text x="560" y="226" class="sm" fill="#2a78d6">≈ 20 mm de avance a 0.5 m/s</text>
   <defs><marker id="a4" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#2a78d6"/></marker></defs>
 </svg>
-<figcaption>Figura 3. Secuencia de disparo. El PLC (o el controlador de luces) dispara cada luz durante 50–100 µs junto con la cámara. El desfase de ≈ 20 mm entre las dos fotos no es problema: cada foto se analiza por separado.</figcaption>
+<figcaption>Figura 4. Secuencia de disparo. El PLC (o el controlador de luces) dispara cada luz durante 50–100 µs junto con la cámara. El desfase de ≈ 20 mm entre las dos fotos no es problema: cada foto se analiza por separado.</figcaption>
 </figure>
 <ul>
 <li><b>Una sola cámara alcanza:</b> las cámaras industriales toman 2 fotos en menos de 50 ms. El controlador de iluminación alterna qué luz se enciende en cada disparo.</li>
@@ -177,7 +265,7 @@ td.c { text-align: center; }
 <li><b>Nombre de archivo:</b> la cámara guarda <code>toalla_000123_A.jpg</code> y <code>toalla_000123_B.jpg</code>. El número permite al sistema y al PLC saber a qué toalla corresponde cada foto.</li>
 </ul>
 
-<h3>2.2 Resolución según el tamaño de toalla</h3>
+<h3>4.2 Resolución según el tamaño de toalla</h3>
 <table>
 <tr><th>Toalla</th><th>Campo de visión (con margen)</th><th>Cámara de 20 MP (5472 × 3648)</th><th>¿Cumple ≤ 0.2 mm/px?</th></tr>
 <tr><td>De mano, 50 × 90 cm</td><td>60 × 100 cm</td><td>≈ 0.18 mm/px</td><td class="c">Sí</td></tr>
@@ -185,7 +273,7 @@ td.c { text-align: center; }
 </table>
 <p><b>Lente:</b> distancia focal ≈ ancho del sensor × distancia de trabajo ÷ ancho del campo. Ejemplo: sensor de 13 mm, a 1.2 m, campo de 1 m → ≈ 16 mm. El proveedor de la cámara confirma el lente exacto con estos tres datos.</p>
 
-<h3>2.3 ¿Y la otra cara de la toalla?</h3>
+<h3>4.3 ¿Y la otra cara de la toalla?</h3>
 <p>Una cámara de área ve solo la cara de arriba. Para ver la otra hay dos caminos:</p>
 <ul>
 <li><b>Volteador + segunda estación igual:</b> después de la primera captura, la toalla se voltea (rodillo volteador o transferencia en cascada) y pasa por una segunda estación idéntica.</li>
@@ -193,7 +281,7 @@ td.c { text-align: center; }
 </ul>
 <p>Recomendación: empezar con la cara superior. Medir en el piloto qué porcentaje de defectos aparece solo por abajo y, con ese dato, decidir si se agrega la segunda cara.</p>
 
-<h2>3. Estación 2 · Producción con cámaras de barrido lineal</h2>
+<h2>5. Estación 2 · Producción con cámaras de barrido lineal</h2>
 <p>Una cámara lineal toma una sola línea de píxeles a la vez, miles de veces por segundo, mientras la toalla pasa por debajo. La imagen se arma línea por línea, como un escáner. Es la tecnología de los sistemas comerciales de inspección de tela, y <b>sí sirve para toallas terminadas sobre una banda</b>, con dos condiciones: velocidad estable con un <b>encoder</b> que marque el avance, y la toalla extendida.</p>
 
 <figure class="fig">
@@ -251,7 +339,7 @@ td.c { text-align: center; }
   <text x="612" y="110" class="sm">(separa las NO OK)</text>
   <line x1="652" y1="114" x2="660" y2="174" stroke="#52514e"/>
 </svg>
-<figcaption>Figura 4. Estación 2, vista lateral. Ambas caras se inspeccionan en la transferencia entre dos bandas. Cada cámara alterna sus dos luces línea por línea (multiplexado), así obtiene la imagen difusa y la rasante en una sola pasada.</figcaption>
+<figcaption>Figura 5. Estación 2, vista lateral. Ambas caras se inspeccionan en la transferencia entre dos bandas. Cada cámara alterna sus dos luces línea por línea (multiplexado), así obtiene la imagen difusa y la rasante en una sola pasada.</figcaption>
 </figure>
 
 <table>
@@ -263,11 +351,38 @@ td.c { text-align: center; }
 <tr><td>Iluminación pareja</td><td>Buena, con encierro y difusores</td><td>Muy buena: solo hay que iluminar una línea</td></tr>
 <tr><td>Requisitos mecánicos</td><td>Banda actual + encierro</td><td>Dos bandas con hueco y nariz de transferencia, encoder, velocidad estable</td></tr>
 <tr><td>Complejidad de montaje</td><td>Baja</td><td>Media–alta</td></tr>
-<tr><td>Uso recomendado</td><td>Piloto y validación</td><td>Producción, con separación automática</td></tr>
+<tr><td>Uso recomendado</td><td>Producción inicial (una cara), sin detener la banda</td><td>Producción, ambas caras, con separación automática</td></tr>
 </table>
 <div class="box warn"><b>Puntos de cuidado de la estación 2</b>La toalla no debe "colgar" en el hueco: use una nariz de transferencia (barra de borde redondeado) y un hueco de 10–15 mm. La velocidad debe ser estable y el encoder debe ir en el rodillo que arrastra la toalla. Las cámaras lineales necesitan más luz que las de área, por lo que se usan líneas LED de alta intensidad.</div>
 
-<h2>4. Conexiones y control</h2>
+
+<h2>6. La banda transportadora</h2>
+<p>Si la banda se va a construir, conviene diseñarla pensando en la inspección desde el principio.</p>
+<table>
+<tr><th>Elemento</th><th>Recomendación</th><th>Por qué</th></tr>
+<tr><td>Ancho</td><td>Toalla más ancha + ≥ 10 cm por lado</td><td>La toalla completa entra en la foto con margen.</td></tr>
+<tr><td>Superficie</td><td>Banda de PVC o PU <b>negra mate</b>, lisa, sin dibujo</td><td>Contraste con la toalla, sin reflejos; el programa separa la toalla del fondo por el color.</td></tr>
+<tr><td>Zona de captura</td><td>Tramo plano de ≥ 1.5 m sobre una cama de deslizamiento rígida, sin rodillos debajo de la cámara</td><td>La toalla queda plana y a distancia constante; nada vibra.</td></tr>
+<tr><td>Toalla extendida</td><td>Guías laterales y un rodillo o cepillo extensor antes de la cámara; colocación sin dobleces</td><td>Un doblez esconde defectos o parece uno.</td></tr>
+<tr><td>Separación</td><td>≥ 20 cm entre toallas</td><td>El sensor distingue cada toalla y no se ven dos en una foto.</td></tr>
+<tr><td>Motor</td><td>Motorreductor con <b>variador de frecuencia</b>; freno o servomotor si la banda se detiene en cada toalla</td><td>Velocidad estable (obligatoria para cámara lineal) y paradas precisas.</td></tr>
+<tr><td>Encoder</td><td>En el rodillo de arrastre</td><td>Sincroniza cámara lineal y desviador con el avance real.</td></tr>
+<tr><td>Transferencia con hueco</td><td>Opcional: dos bandas con hueco de 10–15 mm y nariz de borde redondeado</td><td>Permite ver la cara inferior (estación 2).</td></tr>
+<tr><td>Rechazo</td><td>Desviador o soplador después de la cámara, a una distancia ≥ velocidad × (tiempo de análisis + margen)</td><td>La decisión debe llegar antes que la toalla.</td></tr>
+<tr><td>Seguridad</td><td>Guardas, paro de emergencia, bloqueo de energía para mantenimiento</td><td>Norma básica de máquinas.</td></tr>
+</table>
+<p><b>¿Detener la banda en cada toalla o dejarla continua?</b></p>
+<ul>
+<li><b>Se detiene</b> (recomendado con la cámara Raspberry Pi HQ): sensor → el PLC detiene → foto → la Pi avisa "foto tomada" → el PLC reanuda. La imagen es la mejor posible, basta con luz continua y la mecánica es simple. Cuesta ≈ 0.5–1 s de detención por toalla.</li>
+<li><b>Continua:</b> más productiva, pero con la cámara HQ exige encierro totalmente oscuro y luz de destello sincronizada. Para producción a velocidad, lo adecuado es una cámara industrial con obturador global (estación 1) o una cámara lineal (estación 2).</li>
+</ul>
+<p><b>Distancia mínima cámara → desviador</b>, con ≈ 2 s de análisis (computadora del piloto) + 0.5 s de margen:</p>
+<table>
+<tr><th>Velocidad de la banda</th><th class="n">0.2 m/s</th><th class="n">0.3 m/s</th><th class="n">0.5 m/s</th></tr>
+<tr><td>Distancia mínima</td><td class="n">0.5 m</td><td class="n">0.75 m</td><td class="n">1.25 m</td></tr>
+</table>
+
+<h2>7. Conexiones y control</h2>
 <figure class="fig">
 <svg viewBox="0 0 760 300" role="img" aria-label="Diagrama de conexiones: sensor y encoder al PLC, PLC a controlador de luces y cámara, cámara a switch Ethernet y PC inspector, PC y PLC por Modbus TCP, PLC a torreta y desviador">
   <defs><marker id="c1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#1b1b1a"/></marker>
@@ -306,11 +421,11 @@ td.c { text-align: center; }
   </g>
   <text x="20" y="288" class="sm">Negro: señales digitales 24 V · Azul: red Ethernet</text>
 </svg>
-<figcaption>Figura 5. Conexiones. El PLC dispara luces y cámara. Las fotos llegan a la PC por red. La PC devuelve la decisión al PLC por Modbus TCP: registro 2 = contador, registro 3 = decisión, registros 4–5 = número de toalla.</figcaption>
+<figcaption>Figura 6. Conexiones. El PLC dispara luces y cámara. Las fotos llegan a la PC por red. La PC devuelve la decisión al PLC por Modbus TCP: registro 2 = contador, registro 3 = decisión, registros 4–5 = número de toalla.</figcaption>
 </figure>
-<p><b>Tiempos:</b> el análisis tarda ≈ 1 s por foto con la tarjeta gráfica actual (≈ 2 s por toalla con dos fotos). La distancia entre la cámara y el punto de separación debe dar ese tiempo más un margen. El PLC lee el número de fotos en cola (registro 9); si crece de forma sostenida, la PC no alcanza el ritmo y hace falta una GPU más potente. El mapa completo de registros está en las instrucciones del programa (LEEME, sección 7.2).</p>
+<p><b>Tiempos:</b> el análisis tarda ≈ 1 s por foto con la tarjeta gráfica actual (≈ 2 s por toalla con dos fotos). La distancia entre la cámara y el punto de separación debe dar ese tiempo más un margen. El PLC lee el número de fotos en cola (registro 9); si crece de forma sostenida, la PC no alcanza el ritmo y hace falta una GPU más potente. El mapa completo de registros está en las instrucciones del programa (LEEME, sección 7.4).</p>
 
-<h2>5. Piezas y su función</h2>
+<h2>8. Piezas y su función</h2>
 <table>
 <tr><th>Pieza</th><th>Función</th><th class="c">Est. 1</th><th class="c">Est. 2</th></tr>
 <tr><td>Cámara industrial <b>a color</b> de área, 20 MP, obturador global, disparo externo opto-aislado, GigE/USB3</td><td>Tomar la toalla completa en el instante exacto del disparo</td><td class="c">●</td><td class="c"></td></tr>
@@ -337,8 +452,21 @@ td.c { text-align: center; }
 <tr><td>Fuente 24 VDC regulada, protecciones, canaletas, tierra común</td><td>Alimentación estable y señales sin ruido</td><td class="c">●</td><td class="c">●</td></tr>
 </table>
 <p class="legend">● necesario · ○ opcional</p>
+<h3>8.1 Piezas del piloto (cámara Raspberry Pi HQ)</h3>
+<table>
+<tr><th>Pieza</th><th>Función</th></tr>
+<tr><td>Raspberry Pi 4 (≥ 4 GB) o Pi 5, fuente oficial, microSD 32 GB, gabinete con ventilación</td><td>Recibir el disparo, tomar la foto y enviarla por la red</td></tr>
+<tr><td>Cámara Raspberry Pi HQ + cable plano (adaptador 22→15 pines en Pi 5)</td><td>Tomar la foto a color, 12.3 MP</td></tr>
+<tr><td>Lente de 6, 8, 12 o 16 mm (montura CS/C), según la altura disponible</td><td>Cubrir ≈ 1 m de campo con nitidez</td></tr>
+<tr><td>Módulo optoacoplador 24 V ↔ 3.3 V (entrada y, si se usa, salida "foto tomada")</td><td>Conectar el PLC y la Pi sin dañarla</td></tr>
+<tr><td>Luces LED de corriente continua sin parpadeo, con difusor, y una barra rasante</td><td>Luz estable; evita franjas en la foto</td></tr>
+<tr><td>Encierro y fondo negro mate, tarjeta gris</td><td>Luz constante y referencia de color</td></tr>
+<tr><td>Lámpara UV-A 365 nm + filtro UV para el lente (opcional, prueba)</td><td>Hacer fluorescer manchas de aceite y grasa</td></tr>
+<tr><td>Cámara térmica + lámpara de calor (opcional, prueba prestada o rentada)</td><td>Experimento de termografía para humedad y grosor</td></tr>
+</table>
 
-<h2>6. Guía general de montaje (estación 1)</h2>
+<h2>9. Guía general de montaje (estación 1)</h2>
+<p>Los mismos pasos aplican al piloto con la Raspberry Pi: la cámara HQ ocupa el lugar de la cámara industrial y la Pi recibe el disparo (ver LEEME, sección 7.1).</p>
 <div class="step"><div class="n">1</div><div><b>Ubicación.</b> Elija un tramo recto de banda de ≈ 1.5 m, con la toalla ya extendida y sin vibración. Debe haber espacio para el encierro y, después de la cámara, distancia suficiente para que el PLC reciba la decisión antes de la separación (≈ 1–2 s de recorrido).</div></div>
 <div class="step"><div class="n">2</div><div><b>Estructura y encierro.</b> Monte el marco de perfil de aluminio sobre la banda, independiente de ella para no transmitir vibración. Cierre con paneles negros mate y cortinas en la entrada y salida. Dentro no debe entrar luz de ventanas ni lámparas.</div></div>
 <div class="step"><div class="n">3</div><div><b>Cámara.</b> Instale el soporte de ajuste fino en el centro del marco. La cámara debe quedar <b>perpendicular</b> a la banda (verifique con nivel) y a la altura que da el campo de visión calculado. Coloque el lente y el polarizador.</div></div>
@@ -349,7 +477,7 @@ td.c { text-align: center; }
 <div class="step"><div class="n">8</div><div><b>Software de la cámara.</b> Configure el disparo externo, guardar en la carpeta de entrada del inspector con el número de toalla en el nombre (<code>toalla_000123_A.jpg</code>, <code>…_B.jpg</code>), formato JPG de alta calidad o PNG, balance de blancos y exposición fijos (no automáticos).</div></div>
 <div class="step"><div class="n">9</div><div><b>Seguridad.</b> Guardas sobre partes móviles, bloqueo de energía (LOTO) durante el montaje y protección visual: las luces estroboscópicas son muy intensas, no deben verse directamente.</div></div>
 
-<h2>7. Puesta en marcha y ajuste</h2>
+<h2>10. Puesta en marcha y ajuste</h2>
 <ol>
 <li><b>Enfoque y apertura:</b> enfoque sobre una regla milimétrica puesta en la banda. Cierre el diafragma lo necesario para que el rizo esté nítido en toda la toalla.</li>
 <li><b>Escala:</b> verifique en una foto de la regla cuántos píxeles mide 1 cm. Objetivo: ≥ 50 px/cm (≤ 0.2 mm/px).</li>
@@ -360,7 +488,7 @@ td.c { text-align: center; }
 <li><b>Calibración del sistema:</b> tome 30–60 fotos de toallas <b>buenas</b> y ejecute <code>CALIBRAR</code> del programa de inspección.</li>
 </ol>
 
-<h2>8. Efecto esperado</h2>
+<h2>11. Efecto esperado</h2>
 <table>
 <tr><th>Defecto / problema</th><th>Hoy (fotos existentes)</th><th>Con estación 1</th><th>Con estación 2</th></tr>
 <tr><td>Manchas pequeñas, teñido tenue</td><td>Se escapan algunas</td><td>Mejor: luz pareja y color calibrado</td><td>Mejor</td></tr>
@@ -373,15 +501,15 @@ td.c { text-align: center; }
 </table>
 <p>Estas mejoras se miden en la prueba: el tablero registra cada decisión y la confirmación del operador.</p>
 
-<h2>9. Qué cambia en el software</h2>
+<h2>12. Qué cambia en el software</h2>
 <ul>
-<li><b>Ya listo:</b> recibir fotos de la cámara por carpeta, decidir en ≈ 1 s, entregar la decisión al PLC por Modbus TCP, tablero en vivo, etiquetado de defectos y calibración.</li>
+<li><b>Ya listo:</b> captura con la Raspberry Pi HQ (exposición y balance fijos, número de toalla, disparo por GPIO y aviso de foto tomada), recepción de fotos por red o carpeta, decisión en ≈ 1–2 s, entrega al PLC por Modbus TCP, tablero en vivo, etiquetado de defectos y calibración.</li>
 <li><b>Siguiente versión, cuando exista la estación:</b> agrupar las fotos de cada toalla por su número (A difusa, B rasante y, en su caso, cara inferior) y dar <b>una decisión por toalla</b> (NO OK si cualquier foto lo es).</li>
 <li><b>Reentrenamiento:</b> el modelo actual aprendió con fotos de luz difusa. Las fotos rasantes y las de la cara inferior requieren fotos etiquetadas de la nueva estación: ≈ 150 ejemplos por tipo de defecto y ≥ 300 toallas buenas. Se etiquetan desde el mismo tablero. Mientras tanto, el sistema decide con la foto difusa y guarda las demás para entrenar.</li>
 </ul>
 
-<h2>10. Plan por etapas</h2>
-<div class="phase"><div class="t">Etapa 0 · Prueba de iluminación <span class="w">· 1–2 semanas</span></div>Con una cámara disponible, un encierro provisional y una barra de luz rasante: tomar las mismas 50–100 toallas (buenas y con defectos conocidos) con y sin las luces nuevas, y comparar. Define qué luces valen la pena antes de comprar todo.</div>
+<h2>13. Plan por etapas</h2>
+<div class="phase"><div class="t">Etapa 0 · Piloto y prueba de técnicas <span class="w">· 2–4 semanas</span></div>Con la cámara Raspberry Pi HQ, un encierro provisional y la banda detenida en cada toalla: tomar las mismas 50–100 toallas (buenas y con defectos conocidos) con luz difusa, rasante desde dos direcciones, UV y, si se consigue, cámara térmica. Comparar qué técnica hace más visible cada defecto. Conectar el inspector y el PLC para la prueba con alarma. Define qué luces y qué cámara valen la pena antes de comprar todo.</div>
 <div class="phase"><div class="t">Etapa 1 · Estación 1 en la línea <span class="w">· 1–2 meses</span></div>Montaje, puesta en marcha y prueba con alarma al operador. Juntar fotos etiquetadas de la nueva estación y reentrenar el modelo con ellas.</div>
 <div class="phase"><div class="t">Etapa 2 · Estación 2 y separación automática <span class="w">· cuando la etapa 1 confirme el beneficio</span></div>Cámaras lineales, ambas caras y desviador. Conectar la decisión del sistema a la separación automática una vez validadas las cifras en la línea.</div>
 

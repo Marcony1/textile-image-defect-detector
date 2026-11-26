@@ -24,6 +24,7 @@ Endpoints (all JSON unless noted):
     POST /api/history/new           back up the history database and start an empty one
     GET  /api/inspections/{id}/image   original photo (full resolution) for the labeller
     GET/POST/DELETE /api/labels/{id}   boxes drawn on that photo ({"boxes": [{cls,x1,y1,x2,y2}], "note"})
+    GET  /api/version               program version and changelog (Novedades)
     GET  /api/plc                   Modbus TCP server state for the line PLC (registers, last read, PLC heartbeat)
     GET  /api/labels                counts per class;  GET /api/labels/export.zip  everything for retraining
 """
@@ -47,6 +48,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from .. import config as C
 from .labels import LabelStore
 from .plc import PLCServer
+from .version import CHANGES, VERSION
 from .store import REVIEW_LABELS, Store, window_start
 from .worker import IMAGE_EXT, InspectionWorker
 
@@ -83,7 +85,7 @@ def _demo_labels(demo_dir: Path | None) -> dict:
 
 
 def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = ServiceConfig()) -> FastAPI:
-    app = FastAPI(title="Galia · inspección de toallas", version="2.0")
+    app = FastAPI(title="Galia · inspección de toallas", version=VERSION)
     subscribers: set[asyncio.Queue] = set()
     loop_holder: dict = {}
 
@@ -266,8 +268,12 @@ def create_app(store: Store, worker: InspectionWorker, cfg: ServiceConfig = Serv
                     total_inspections=store.count() if hasattr(store, "count") else None,
                     brand=dict(name=cfg.brand_name, color=cfg.brand_color, color2=cfg.brand_color_2,
                                logo=(int(Path(cfg.brand_logo).stat().st_mtime) if cfg.brand_logo and Path(cfg.brand_logo).exists() else False)),
-                    note=cfg.note, line_name=cfg.line_name,
+                    note=cfg.note, line_name=cfg.line_name, version=VERSION,
                     plc=plc.state() if plc else dict(enabled=False))
+
+    @app.get("/api/version")
+    def version():
+        return dict(version=VERSION, cambios=CHANGES)
 
     @app.get("/api/plc")
     def plc_state():

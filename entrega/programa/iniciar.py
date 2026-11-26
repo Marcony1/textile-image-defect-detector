@@ -55,7 +55,11 @@ def main():
     logo = ruta(logo) if logo else None
 
     print("=" * 64)
-    print(" Inspector de toallas")
+    try:
+        from galia.service.version import VERSION
+    except Exception:
+        VERSION = "?"
+    print(f" Inspector de toallas · versión {VERSION}")
     print("=" * 64)
     print(" Cargando programa (la primera vez tarda hasta 1 minuto)…")
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s: %(message)s")

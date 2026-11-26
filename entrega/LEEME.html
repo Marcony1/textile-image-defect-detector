@@ -13,7 +13,7 @@ h2 { break-before: auto; }
 
 <span class="audience">Instrucciones de instalación y uso</span>
 <h1>Inspector automático de toallas</h1>
-<div class="meta">Versión de prueba · {{FECHA}}</div>
+<div class="meta"><b>Versión {{VERSION}}</b> · {{FECHA}} · si tiene un zip con un número de versión menor, este es más nuevo</div>
 
 <p class="lead">Este programa revisa la foto de cada toalla y decide si está <b>OK</b> o <b>NO OK</b> (posible defecto). Marca en la foto dónde está el posible defecto y muestra todo en una pantalla en vivo. Esta guía explica cómo instalarlo, probarlo con fotos de ejemplo y conectarlo a su cámara.</p>
 
@@ -36,7 +36,8 @@ h2 { break-before: auto; }
 <a href="#s10">10. Configuración</a><br>
 <a href="#s11">11. Problemas comunes</a><br>
 <a href="#s12">12. Para programadores</a><br>
-<a href="#s13">13. Guía del tablero, elemento por elemento</a>
+<a href="#s13">13. Guía del tablero, elemento por elemento</a><br>
+<a href="#s14">14. Novedades de cada versión</a>
 </div>
 
 <h2 id="s1">1. Qué hay en la carpeta</h2>
@@ -49,7 +50,7 @@ h2 { break-before: auto; }
 ├── configuracion.ini       ← carpetas, qué tan estricto es, logo y colores
 ├── demo/                   ← {{N_DEMO}} fotos de ejemplo con la respuesta correcta
 ├── calibracion/            ← aquí van las fotos de toallas buenas para CALIBRAR
-├── camara/capturar.py      ← (pruebas) tomar fotos con cámara USB o Raspberry Pi
+├── camara/capturar.py      ← tomar fotos con la Raspberry Pi (cámara HQ) y enviarlas a la PC
 ├── marca/                  ← logo que aparece en la pantalla
 ├── modelos/                ← el "cerebro" del sistema (no modificar)
 ├── python311/              ← Python 3.11 portátil que usa el programa (no modificar)
@@ -105,16 +106,54 @@ Se crean al usarlo:
 <p>Si CALIBRAR dice que <i>no encontró la etiqueta</i>, asegúrese de que la etiqueta de la toalla sea visible en las fotos. Si no es posible, indique la escala a mano: es el tamaño de la toalla en las fotos de <code>demo</code> dividido entre el tamaño en sus fotos. Por ejemplo, si en sus fotos la toalla se ve 1.7 veces más grande, abra una ventana de comandos en la carpeta del programa y escriba <code>CALIBRAR.bat --escala 0.6</code>.</p>
 
 <h2 id="s7">7. Conectar la cámara y el PLC de la línea</h2>
-<p>En la línea, el flujo es este. El <b>PLC</b> detecta la toalla y dispara la <b>cámara industrial</b>. La cámara guarda la foto en una carpeta. El inspector la analiza (≈ 1 s) y deja la decisión en unos <b>registros Modbus TCP</b>, de donde la lee el PLC para encender una alarma o, más adelante, separar la toalla.</p>
-<pre>  sensor de presencia ─► PLC ─► dispara cámara (+ luces)
-                                   │
-                                   ▼ guarda  toalla_000123.jpg
-                         carpeta entrada/ ──► INSPECTOR (PC con GPU) ──► procesadas/fecha/OK | NO_OK
-                                                   │                      + tablero en vivo
-                                                   ▼ Modbus TCP (puerto 502)
-                         PLC lee: contador, decisión, ID de toalla ──► alarma / desviador</pre>
+<p>Para el piloto, la cámara es la <b>Raspberry Pi High Quality Camera</b> (sensor Sony IMX477, 12.3 MP, 4056 × 3040, a color), conectada a una <b>Raspberry Pi</b>. La Pi toma la foto cuando recibe la señal del PLC o de un sensor y la <b>envía por la red</b> a la PC con la tarjeta gráfica. La PC la analiza y deja la decisión en <b>registros Modbus TCP</b>, de donde la lee el PLC.</p>
+<pre>  sensor de presencia ─► PLC ─► (optoacoplador) ─► Raspberry Pi + cámara HQ
+                                                     │  toma la foto  toalla_000123.jpg
+                                                     ▼  la envía por la red (o a una carpeta compartida)
+                        INSPECTOR (PC con GPU) ──► procesadas/fecha/OK | NO_OK  + tablero en vivo
+                                │
+                                ▼ Modbus TCP (puerto 502)
+                        PLC lee: contador, decisión, ID de toalla ──► alarma / desviador</pre>
+<p>La Raspberry Pi <b>no analiza</b> las fotos: sería demasiado lenta. Solo las toma y las envía.</p>
 
-<h3>7.1 Cámara → carpeta de entrada</h3>
+<h3>7.1 Raspberry Pi con la cámara HQ</h3>
+<p><b>Material:</b></p>
+<ul>
+<li>Raspberry Pi 4 (4 GB o más) o Raspberry Pi 5, con su fuente oficial y una microSD de 32 GB con <b>Raspberry Pi OS de 64 bits</b>.</li>
+<li>Cámara Raspberry Pi HQ y su cable plano. En la Pi 5 se necesita el cable adaptador de 22 a 15 pines.</li>
+<li><b>Lente</b> (la cámara HQ no lo trae). El de 6 mm (montura CS) cubre ≈ 1 m de ancho a ≈ 1 m de altura, con algo de distorsión en las orillas. El de 16 mm (montura C) necesita ≈ 2.5 m de altura para el mismo campo, con menos distorsión.</li>
+<li>Módulo <b>optoacoplador</b> de 24 V a 3.3 V, para recibir la señal del PLC o de un sensor industrial.</li>
+<li>Cable de red a la misma red que la PC del inspector (o un cable directo entre ambas).</li>
+</ul>
+<p><b>Preparar la Pi</b> (en una terminal de la Pi):</p>
+<pre>sudo apt update
+sudo apt install -y python3-picamera2 python3-gpiozero
+rpicam-still -o prueba.jpg          # prueba: debe guardar una foto
+# copie la carpeta "camara" del paquete a la Pi, por ejemplo a /home/pi/camara</pre>
+<p><b>Enfoque y apertura:</b> ponga una regla milimétrica sobre la banda y gire el anillo de enfoque hasta ver nítidas las marcas de milímetro. Cierre el diafragma un poco (f/4 a f/5.6) para que toda la toalla quede nítida. Apriete los tornillos del lente para que nada se mueva.</p>
+<p><b>Cableado de la señal:</b> salida de 24 V del PLC (o del sensor) → entrada del optoacoplador. Salida del optoacoplador → <b>GPIO 17 (pin físico 11)</b> y <b>GND (pin físico 9)</b> de la Pi.</p>
+<div class="box bad"><b>Nunca conecte 24 V directamente a la Raspberry Pi</b>Sus pines trabajan a 3.3 V: 24 V la destruyen al instante. Use siempre el optoacoplador. Si se usa la señal de "foto tomada" (<code>--pin-listo</code>), también debe ir por un optoacoplador o relé hacia la entrada del PLC.</div>
+<p><b>Enviar las fotos a la PC.</b> En la PC, en <code>configuracion.ini</code>, ponga <code>[pantalla] permitir_red = si</code> y reinicie INICIAR; la ventana negra muestra la dirección (ej. <code>http://192.168.1.50:8000</code>). En la Pi:</p>
+<pre>cd /home/pi/camara
+python3 capturar.py --servidor http://192.168.1.50:8000 --modo sensor --pin 17 --retraso 0.2</pre>
+<ul>
+<li><b>Exposición y balance de blancos fijos.</b> Al arrancar, deje una toalla <b>buena</b> bajo la cámara con la luz definitiva. El programa mide la luz durante 3 s y deja los valores <b>fijos</b>, para que la imagen no cambie de una toalla a otra, y los imprime. Use esos mismos valores después (<code>--exposicion … --ganancia … --balance …</code>) para que cada arranque sea idéntico.</li>
+<li><b>Número de toalla:</b> las fotos se llaman <code>toalla_000001.jpg</code>, <code>toalla_000002.jpg</code>, … El contador continúa después de reiniciar (<code>--inicio N</code> lo cambia). Ese número llega al PLC en los registros 4–5.</li>
+<li><b>Calibre</b> el inspector con 30–60 fotos de toallas buenas de esta cámara (sección 6).</li>
+<li><b>Arranque automático</b> al encender la Pi: <code>crontab -e</code> y agregue<br><code>@reboot sleep 20 &amp;&amp; cd /home/pi/camara &amp;&amp; python3 capturar.py --servidor http://192.168.1.50:8000 --modo sensor --pin 17 --exposicion … --ganancia … --balance … &gt;&gt; captura.log 2&gt;&amp;1</code></li>
+<li><b>Resolución:</b> con 4056 píxeles a lo largo, una toalla de mano (campo ≈ 100 cm) queda a ≈ 0.25 mm por píxel, la misma escala con que se entrenó el sistema. Una toalla de baño (campo ≈ 150 cm) queda a ≈ 0.37 mm por píxel y los defectos pequeños se pierden: use dos cámaras (una por mitad) o una cámara de mayor resolución.</li>
+</ul>
+
+<h3>7.2 La banda: ¿se puede detener en cada toalla?</h3>
+<p>La cámara HQ tiene <b>obturador de barrido</b> ("rolling shutter"): lee la imagen renglón por renglón durante ≈ 0.1 s. Si la toalla se mueve mientras tanto, sale <b>inclinada o deformada</b>. Hay dos formas de evitarlo:</p>
+<table>
+<tr><th>Banda</th><th>Cómo tomar la foto</th><th>Ventajas y cuidados</th></tr>
+<tr class="hl"><td><b>Se detiene</b> en cada toalla (recomendado para el piloto)</td><td>Sensor → el PLC detiene la banda → señal a la Pi → <code>--retraso 0.2</code> (para que deje de vibrar) → foto → la Pi da un pulso en <code>--pin-listo</code> → el PLC reanuda la banda.</td><td>Lo más simple y la mejor imagen. Con luz continua basta. Cuesta ≈ 0.5–1 s por toalla de detención.</td></tr>
+<tr><td><b>Continua</b> (no se detiene)</td><td>Encierro <b>totalmente oscuro</b> + luz de <b>destello</b> (estroboscópica). La cámara expone ≈ 0.1 s en la oscuridad y el destello dura ≈ 0.1 ms: solo "existe" la imagen del destello y la toalla sale congelada.</td><td>Requiere encierro sin fugas de luz y sincronizar el destello con la exposición (PLC o controlador de luces). Para producción a velocidad, mejor una cámara industrial con obturador global o una cámara lineal (ver la propuesta de estación de captura).</td></tr>
+</table>
+<p>Si la banda todavía no existe, conviene diseñarla pensando en la inspección. El documento <b>"Propuesta de estación de captura"</b> describe la banda, el encierro, la iluminación y cómo hacer visible cada tipo de defecto.</p>
+
+<h3>7.3 Cámara industrial → carpeta de entrada (alternativa)</h3>
 <ul>
 <li>En el software de la cámara, configure como carpeta de salida la carpeta <code>entrada</code> del inspector, o ponga en <code>entrada =</code> de <code>configuracion.ini</code> la carpeta que ya usa la cámara. Puede ser una carpeta de red (<code>\\SERVIDOR\fotos</code>).</li>
 <li><b>Una foto por toalla</b>, JPG/PNG/BMP/TIF, con la toalla completa.</li>
@@ -122,7 +161,7 @@ Se crean al usarlo:
 <li>El inspector espera a que el archivo termine de escribirse antes de leerlo. Lo ideal es que la cámara escriba con otro nombre (ej. <code>.tmp</code>) y renombre al terminar.</li>
 </ul>
 
-<h3>7.2 PLC ↔ inspector (Modbus TCP)</h3>
+<h3>7.4 PLC ↔ inspector (Modbus TCP)</h3>
 <p>En <code>configuracion.ini</code>, sección <code>[plc]</code>: <code>habilitar = si</code>, <code>puerto = 502</code> y, por seguridad, la IP del PLC en <code>ip_permitidas</code>. Reinicie INICIAR. La ventana negra mostrará <i>"PLC (Modbus TCP): puerto 502 en 192.168.x.x"</i>, la IP que se configura en el PLC. Si el firewall de Windows pregunta, permita el acceso en <b>redes privadas</b>.</p>
 <p>El inspector es el <b>servidor (esclavo)</b>; el PLC es el <b>cliente (maestro)</b>. Se usan <b>holding registers</b> (función 3; la función 4 devuelve lo mismo). Las direcciones empiezan en 0; algunos PLC las muestran como 40001, 40002…</p>
 <table>
@@ -144,22 +183,23 @@ Se crean al usarlo:
 <p><b>Lógica sugerida en el PLC:</b> leer los registros 0–13 cada 100–200 ms. Cuando el registro 2 cambie, tomar la decisión (3) y el ID (4–5) y asociarlos a la toalla en seguimiento. Escribir el latido en el 20. Durante la prueba se recomienda usar la decisión solo para una <b>torreta o alarma</b>, no para separar toallas automáticamente.</p>
 <p><b>Tiempos:</b> el análisis tarda ≈ 1 s con tarjeta gráfica (registro 8). La distancia entre la cámara y el punto de rechazo debe dar ese tiempo más un margen. Si el registro 9 (cola) sube de forma sostenida, la PC no alcanza el ritmo.</p>
 
-<h3>7.3 Probar la conexión sin el PLC</h3>
+<h3>7.5 Probar la conexión sin el PLC ni la cámara</h3>
 <p><code>PROBAR_PLC.bat</code> simula un PLC: se conecta al inspector, escribe el latido y muestra cada decisión. Con INICIAR abierto y <code>[plc] habilitar = si</code>, ejecútelo y pulse <b>Iniciar demostración</b>: debe aparecer una línea por toalla. Desde otra computadora: <code>PROBAR_PLC.bat 192.168.x.x 502</code>. También sirve cualquier programa de prueba Modbus (ej. Modbus Poll).</p>
+<p><b>Sin cámara:</b> para probar todo el camino (envío de fotos → inspector → PLC), use la fuente de prueba de <code>capturar.py</code>, que reenvía fotos existentes como si fueran de la cámara. Funciona en la Pi o en la misma PC:<br><code>python capturar.py --fuente carpeta --origen ../demo/fotos --servidor http://localhost:8000 --modo intervalo --segundos 2</code></p>
 
-<h3>7.4 Otras formas de enviar fotos (pruebas)</h3>
+<h3>7.6 Otras formas de enviar fotos (pruebas)</h3>
 <ul>
 <li><b>Carpeta de fotos ya tomadas:</b> "Cómo empezar" → Analizar una carpeta.</li>
 <li><b>Por la red (HTTP):</b> <code>POST /api/inspect</code> (sección 12), útil si la cámara o un programa del integrador puede enviar archivos.</li>
-<li><b>Cámara USB o Raspberry Pi</b> para pruebas de banco: <code>camara/capturar.py --help</code> (toma fotos al presionar Enter, por intervalo o con un sensor, y las deja en la carpeta o las envía por red).</li>
+<li><b>Cámara USB</b> para pruebas de banco: <code>capturar.py --fuente usb</code> (las cámaras web dan menos detalle que la cámara HQ).</li>
 </ul>
 
-<h3>7.5 Recomendaciones para la foto</h3>
+<h3>7.7 Recomendaciones para la foto</h3>
 <ul>
 <li>Toalla <b>completa y extendida</b>, vista desde arriba, siempre a la misma distancia.</li>
 <li>Iluminación <b>pareja y constante</b>, dentro de un encierro (sin sombras, reflejos ni luz de ventanas).</li>
 <li>Fondo oscuro y uniforme. Resolución mínima: ≈ 0.25 mm por píxel (≈ 3,500 píxeles a lo ancho para una toalla de 90 cm).</li>
-<li>Vea también la propuesta de estación de captura (documento aparte).</li>
+<li>Detalles de banda, encierro, iluminación y cómo hacer visible cada defecto: documento <b>"Propuesta de estación de captura"</b> (versión 1.1 o posterior).</li>
 </ul>
 
 <h2 id="s8">8. Durante la prueba</h2>
@@ -192,7 +232,7 @@ Se crean al usarlo:
 <tr><td><code>escala</code></td><td><code>auto</code> = la que calculó CALIBRAR. Solo cámbiela si se lo indicamos.</td></tr>
 <tr><td><code>nombre_linea</code>, <code>alerta_seguidas</code>, <code>alerta_fraccion</code></td><td>Nombre en pantalla y cuándo avisar.</td></tr>
 <tr><td><code>puerto</code>, <code>permitir_red</code>, <code>abrir_navegador</code></td><td>Dirección de la pantalla y acceso desde otras PCs.</td></tr>
-<tr><td><code>[plc]</code> <code>habilitar</code>, <code>puerto</code>, <code>ip_permitidas</code></td><td>Conexión Modbus TCP con el PLC de la línea (sección 7.2).</td></tr>
+<tr><td><code>[plc]</code> <code>habilitar</code>, <code>puerto</code>, <code>ip_permitidas</code></td><td>Conexión Modbus TCP con el PLC de la línea (sección 7.4).</td></tr>
 <tr><td><code>logo</code>, <code>nombre</code>, <code>color_principal</code>, <code>color_secundario</code></td><td>Logo (archivo en <code>marca/</code>) y colores de la empresa en formato <code>#RRGGBB</code>.</td></tr>
 </table>
 
@@ -299,5 +339,8 @@ curl -F "file=@toalla.jpg" http://localhost:8000/api/inspect</pre>
 <li>Al terminar la prueba, envíenos el archivo de <b>Exportar etiquetas</b> (sección 9).</li>
 </ul>
 
+<h2 id="s14" class="pb">14. Novedades de cada versión</h2>
+<p>La versión instalada aparece en el tablero, junto al botón <b>Novedades</b>, y en el nombre del zip (<code>Inspector_Toallas_v{{VERSION}}.zip</code>). Para actualizar: cierre INICIAR, descomprima el zip nuevo y ejecute INSTALAR. El historial, las etiquetas y la calibración están en la carpeta del programa: si descomprime la versión nueva en otra carpeta, copie <code>datos/</code>, <code>etiquetas/</code>, <code>procesadas/</code>, <code>configuracion.ini</code> y <code>modelos/calibracion.json</code> de la versión anterior.</p>
+{{NOVEDADES}}
 <footer>Sistema en etapa de prueba: sus decisiones deben confirmarse por un inspector. Resultados medidos con fotos de la cámara de junio de 2025; el desempeño con otra cámara o iluminación debe medirse en la prueba.</footer>
 </body></html>

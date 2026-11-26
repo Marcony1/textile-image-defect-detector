@@ -1,0 +1,52 @@
+[
+  {
+    "version": "1.3.0",
+    "fecha": "2026-11-25",
+    "titulo": "Cámara Raspberry Pi HQ, versiones y novedades",
+    "cambios": [
+      "Número de versión visible en el tablero, en las instrucciones (LEEME) y en el nombre del zip; botón «Novedades» con los cambios de cada versión.",
+      "Captura con la cámara Raspberry Pi High Quality (camara/capturar.py): resolución completa (4056 × 3040), exposición y balance de blancos FIJOS para que la luz no cambie entre toallas, número de toalla en el nombre del archivo (toalla_000123.jpg) para que el PLC lo reciba.",
+      "Nueva fuente de prueba «carpeta» en capturar.py: reenvía fotos existentes como si fueran de la cámara, para probar cámara → inspector → PLC sin hardware.",
+      "Instrucciones (sección 7): la Raspberry Pi con la cámara HQ es la ruta principal del piloto, con cableado del PLC/sensor a la Pi y envío de fotos por la red; qué hacer si la banda se puede detener o no."
+    ]
+  },
+  {
+    "version": "1.2.1",
+    "fecha": "2026-11-23",
+    "titulo": "Compatibilidad con más tarjetas gráficas",
+    "cambios": [
+      "INSTALAR elige la versión de PyTorch según la tarjeta NVIDIA (RTX 50 «Blackwell» → PyTorch 2.7.1 / CUDA 12.8), la prueba y, si no funciona, instala la versión para procesador.",
+      "Si la tarjeta no es compatible, el programa ya no falla: analiza con el procesador y lo avisa en el tablero.",
+      "Se quitó el aviso repetido «'half' is deprecated» de la consola."
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "fecha": "2026-11-21",
+    "titulo": "Conexión con PLC y Python incluido",
+    "cambios": [
+      "Conexión con el PLC de la línea por Modbus TCP: el PLC lee la decisión, el número de toalla y el estado del sistema; el tablero muestra si el PLC está conectado. PROBAR_PLC.bat simula un PLC.",
+      "Python 3.11 portátil incluido en el paquete: INSTALAR ya no descarga ni descomprime nada (evita bloqueos del antivirus).",
+      "INSTALAR crea el entorno en una ruta corta y avisa si se ejecuta desde dentro del zip."
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "fecha": "2026-11-20",
+    "titulo": "Exigencia, etiquetador e historial",
+    "cambios": [
+      "Control de Exigencia: deslizador para hacer la detección más o menos estricta, con la curva «lo que se gana y lo que cuesta».",
+      "Etiquetador integrado: marcar dónde está cada defecto para mejorar el modelo, y exportar las etiquetas.",
+      "Botones para borrar la demostración y empezar un historial nuevo (con respaldo).",
+      "Guía del tablero, elemento por elemento, en las instrucciones."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "fecha": "2026-11-19",
+    "titulo": "Primera entrega para la prueba en planta",
+    "cambios": [
+      "Tablero en vivo, demostración con 24 toallas, análisis de carpetas, calibración para otra cámara, instalador para Windows y Linux."
+    ]
+  }
+]

@@ -210,6 +210,14 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
 .keys { font-size: 12px; color: var(--text-2); line-height: 1.7; }
 .keys .kbd { margin: 0 2px; }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--text); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 60; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.ver { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+#news-btn.unseen { position: relative; }
+#news-btn.unseen::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--brand-2); }
+.news h3 { margin: 14px 0 4px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.news h3 .d { color: var(--text-3); font-weight: 400; font-size: 12.5px; }
+.news h3 .tag { font-size: 11px; font-weight: 600; color: var(--brand-ink); background: var(--brand); border-radius: 999px; padding: 1px 8px; }
+.news ul { margin: 4px 0 6px; padding-left: 20px; color: var(--text-2); font-size: 13px; }
+.news li { margin: 3px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -238,6 +246,7 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
         <option value="24h">Últimas 24 h</option>
         <option value="7d">Últimos 7 días</option>
       </select>
+      <button id="news-btn" title="Qué cambió en cada versión">Novedades <span id="ver" class="ver"></span></button>
       <button id="strict-btn" title="Hacer la detección más o menos estricta">Exigencia</button>
       <button id="setup-btn" title="Demostración, analizar una carpeta, conectar la cámara">Cómo empezar</button>
       <a class="btn" id="export" href="/api/export.csv?window=turno">Exportar CSV</a>
@@ -246,6 +255,11 @@ button.danger { background: var(--critical); color: #fff; border-color: transpar
   </header>
 
   <div class="alerts" id="alerts" aria-live="polite"></div>
+
+  <section class="card news" id="news" hidden aria-label="Novedades de la versión">
+    <div class="setup-head"><h2>Novedades</h2><span class="msg" id="news-cur" style="margin:0"></span><span class="spacer"></span><button id="news-close">Ocultar</button></div>
+    <div id="news-list"></div>
+  </section>
 
   <section class="card strict" id="strict" hidden aria-label="Exigencia de la detección">
     <div class="setup-head"><h2>Exigencia de la detección</h2><span class="spacer"></span><button id="strict-close">Ocultar</button></div>
@@ -1069,6 +1083,26 @@ async function loadPLC() {
 }
 setInterval(() => loadPLC().catch(() => {}), 3000);
 loadPLC().catch(() => {});
+
+// ----------------------------------------------------------------- version
+let versionInfo = null;
+async function loadVersion() {
+  const v = versionInfo = await api("/api/version");
+  $("ver").textContent = "v" + v.version;
+  let seen = null; try { seen = localStorage.getItem("galia.version"); } catch (e) {}
+  $("news-btn").classList.toggle("unseen", seen !== v.version);
+}
+function renderNews() {
+  const v = versionInfo; if (!v) return;
+  $("news-cur").textContent = `Versión instalada: ${v.version}`;
+  $("news-list").innerHTML = v.cambios.map((c, i) => `<h3>Versión ${esc(c.version)} ${i === 0 ? '<span class="tag">actual</span>' : ""}<span class="d">${esc(c.fecha)} · ${esc(c.titulo)}</span></h3>
+    <ul>${c.cambios.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`).join("");
+  try { localStorage.setItem("galia.version", v.version); } catch (e) {}
+  $("news-btn").classList.remove("unseen");
+}
+$("news-btn").addEventListener("click", () => { $("news").hidden = !$("news").hidden; if (!$("news").hidden) renderNews(); });
+$("news-close").addEventListener("click", () => $("news").hidden = true);
+loadVersion().then(() => { if (location.hash === "#novedades") { $("news").hidden = false; renderNews(); } }).catch(console.error);
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-MX"); }, 1000);
 setInterval(loadSummary, 30000);

@@ -146,6 +146,8 @@ Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/
 
 ### Paquete para la prueba en planta
 
+**Versiones:** la versión del paquete y su historial de cambios viven en `src/galia/service/static/cambios.json` (la entrada más reciente va primero). De ahí salen el nombre del zip (`dist/Inspector_Toallas_v<versión>.zip`), la versión en el tablero (botón *Novedades*), la portada de `LEEME.pdf` y su sección 14. Para publicar una versión nueva: agregar una entrada al inicio de `cambios.json` y correr `python scripts/build_delivery.py`. La propuesta de estación de captura tiene su propia versión (`DOC_VERSION` en `scripts/build_propuesta.py` → `docs/propuesta_estacion_captura_v<versión>.pdf`).
+
 ```bash
 python scripts/build_delivery.py      # -> dist/Inspector_Toallas/ y dist/Inspector_Toallas.zip (~120 MB)
 ```
