@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Reporte ejecutivo · Inspección automática de toallas</title>
+<style>@page { size: A4; margin: 16mm 16mm 18mm; }
+:root { --ink: #1b1b1a; --ink2: #52514e; --ink3: #8a8984; --line: #e2e1dc; --soft: #f4f4f1;
+        --blue: #2a78d6; --good: #0ca30c; --bad: #d03b3b; --warn: #b57a00; }
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 800px; padding: 24px 16px; color: var(--ink); background: #fff;
+       font: 10.5pt/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+@media print { body { padding: 0; max-width: none; } }
+h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 14pt; margin: 26px 0 8px; padding-top: 6px; border-top: 2px solid var(--ink); break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 18px 0 6px; break-after: avoid; }
+p { margin: 6px 0 8px; }
+ul, ol { margin: 6px 0 10px; padding-left: 20px; }
+li { margin: 3px 0; }
+.lead { font-size: 12pt; color: var(--ink2); margin-bottom: 14px; }
+.meta { color: var(--ink3); font-size: 9.5pt; margin-bottom: 18px; }
+.audience { display: inline-block; font-size: 9pt; color: var(--ink2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; break-inside: avoid; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink2); border-bottom: 1.5px solid var(--ink2); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.hl td { background: #eef5fd; font-weight: 600; }
+figure { margin: 10px 0 14px; break-inside: avoid; }
+figure img { width: 100%; border: 1px solid var(--line); border-radius: 4px; display: block; }
+figcaption { font-size: 9pt; color: var(--ink2); margin-top: 4px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 16px; break-inside: avoid; }
+.kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.kpi .v { font-size: 22pt; font-weight: 650; letter-spacing: -.02em; line-height: 1.1; }
+.kpi .l { font-size: 9pt; color: var(--ink2); }
+.kpi.g .v { color: var(--good); } .kpi.b .v { color: var(--bad); } .kpi.u .v { color: var(--blue); }
+.box { border-left: 3px solid var(--blue); background: var(--soft); padding: 8px 12px; margin: 10px 0; break-inside: avoid; }
+.box.warn { border-color: var(--warn); }
+.box.bad { border-color: var(--bad); }
+.box b:first-child { display: block; margin-bottom: 2px; }
+code { font: 9pt Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+pre { font: 8.5pt/1.45 Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 8px 10px; border-radius: 4px; overflow-x: auto; break-inside: avoid; white-space: pre-wrap; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pb { break-before: page; }
+.phase { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
+.phase .t { font-weight: 650; }
+.phase .w { color: var(--ink3); font-size: 9pt; }
+.bar { display: grid; grid-template-columns: 150px 1fr 54px; align-items: center; gap: 8px; margin: 5px 0; font-size: 10pt; }
+.bar .tr { height: 16px; background: var(--soft); border-radius: 0 4px 4px 0; }
+.bar .tr i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.bar .v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; max-width: 360px; margin: 6px 0; }
+.dots i { aspect-ratio: 1; border-radius: 50%; display: block; }
+.legend { font-size: 9pt; color: var(--ink2); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 4px 0 10px; vertical-align: -1px; }
+footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink3); font-size: 8.5pt; }
+ul { list-style: none; padding-left: 16px; }
+ul > li { position: relative; }
+ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--ink2); }
+</style></head>
+<body>
+
+<span class="audience">Reporte ejecutivo · dirección y planta</span>
+<h1>Inspección automática de toallas con visión por computadora</h1>
+<div class="meta">Avance del proyecto y propuesta de siguientes pasos · noviembre 2026</div>
+
+<p class="lead">El sistema ahora detecta <b>más de 9 de cada 10 toallas con defecto</b>, contra 2 de cada 10 en la primera versión. Ya existe un programa listo para instalarse en la línea: analiza la foto de cada toalla en menos de un segundo y muestra los resultados en una pantalla en vivo. Proponemos un <b>piloto de 2 a 4 semanas</b> en la línea antes de automatizar el rechazo de piezas.</p>
+
+<div class="kpis">
+  <div class="kpi g"><div class="v">22 % → 92 %</div><div class="l">toallas con defecto detectadas<br>(prueba con 74 toallas defectuosas)</div></div>
+  <div class="kpi b"><div class="v">~1 de 4</div><div class="l">toallas buenas se mandan a revisión por error (1 de 6 en el ajuste intermedio)</div></div>
+  <div class="kpi u"><div class="v">&lt; 1 s</div><div class="l">por toalla, con una foto por pieza como ya trabaja la máquina</div></div>
+</div>
+
+<h2>Qué cambió</h2>
+<ul>
+  <li><b>Se mira la foto completa, con todo su detalle.</b> Antes se encogía la foto 8 a 20 veces y los defectos pequeños (un hilo, una mancha) desaparecían. Ahora se revisa por partes, a tamaño real, y se combina en una sola decisión por toalla.</li>
+  <li><b>Se usaron todas las fotos disponibles:</b> 1,538 toallas, incluidas las nuevas fotos etiquetadas de junio y las ~800 fotos de piezas buenas.</li>
+  <li><b>Se aprovechan modelos ya entrenados con millones de imágenes</b>, en lugar de aprender desde cero con pocas fotos.</li>
+  <li><b>Se ajustó el sistema a la cámara de producción.</b> Las fotos de abril y de junio tienen distinta luz, y eso confundía al sistema. Ahora cada cámara tiene su propia calibración.</li>
+  <li><b>Se combinaron dos modelos.</b> Se probaron más técnicas: variar luz, color y orientación de las fotos, "pegar" defectos en toallas sanas y otra arquitectura. Solo la combinación de dos modelos mejoró de forma estable. Variar la luz y el color no ayudó, porque las fotos de la máquina Keyence ya son muy parejas.</li>
+</ul>
+<p>La <b>etiqueta</b> de la toalla se usó como control: el sistema la encuentra el 96 % de las veces, lo que confirma que "ve" bien la foto.</p>
+
+<h2>Qué significan los resultados</h2>
+<p>Resultados en las fotos de la cámara de producción (junio 2025), con fotos que el sistema nunca vio al entrenar:</p>
+<div class="two">
+  <div>
+    <b>De cada 100 toallas con defecto</b>
+    <div class="dots" id="d1"></div>
+    <div class="legend"><i style="background:#0ca30c;margin-left:0"></i>90 detectadas <i style="background:#d03b3b"></i>10 se escapan</div>
+  </div>
+  <div>
+    <b>De cada 100 toallas buenas</b>
+    <div class="dots" id="d2"></div>
+    <div class="legend"><i style="background:#c9c8c2;margin-left:0"></i>62 pasan <i style="background:#eda100"></i>38 van a revisión</div>
+  </div>
+</div>
+<p>Con todas las fotos de prueba (ambas cámaras) los números son 92 y 28. En el ajuste intermedio son 90 y 15: casi la misma detección con la mitad de revisiones. Como solo hay unas 40 toallas defectuosas por cámara, estas cifras pueden variar ±5–10 puntos. El piloto en la línea dará el número real.</p>
+
+<h3>Ejemplo en un turno</h3>
+<p>Supongamos 1,000 toallas, de las cuales el 5 % tiene defecto. <i>Ese 5 % es un supuesto; la tasa real se medirá en el piloto.</i></p>
+<table>
+  <tr><th>Ajuste del sistema</th><th class="n">Defectuosas detectadas</th><th class="n">Defectuosas que se escapan</th><th class="n">Buenas enviadas a revisión</th></tr>
+  <tr class="hl"><td>Máxima detección (recomendado para el piloto)</td><td class="n">≈ 45 de 50</td><td class="n">≈ 5</td><td class="n">≈ 360 de 950</td></tr>
+  <tr><td>Intermedio</td><td class="n">≈ 44 de 50</td><td class="n">≈ 6</td><td class="n">≈ 155 de 950</td></tr>
+  <tr><td>Menos revisiones</td><td class="n">≈ 41 de 50</td><td class="n">≈ 9</td><td class="n">≈ 75 de 950</td></tr>
+</table>
+<p>El ajuste es una <b>decisión de negocio</b>: más detección implica revisar a mano más toallas buenas. Hoy el sistema ya sirve como <b>filtro</b>: el inspector revisa entre 100 y 400 de cada 1,000 toallas, según el ajuste, en vez de todas y encuentra ahí la mayoría de los defectos. Lo siguiente es bajar las revisiones innecesarias.</p>
+
+<h3>Qué defectos se escapan</h3>
+<p>Sobre todo las <b>manchas muy pequeñas</b>, los <b>hilos sueltos finos</b>, las <b>costuras en las esquinas</b> (a veces tapadas por la etiqueta) y las <b>franjas de teñido muy tenues</b> que atraviesan la toalla. Son difíciles de ver incluso en la foto, y hay pocos ejemplos etiquetados de ellos. Más ejemplos de esos tipos es lo que más ayudaría.</p>
+
+<h2>El producto: pantalla en vivo para la línea</h2>
+<p>El programa vigila la carpeta donde la cámara guarda las fotos. Por cada toalla:</p>
+<ul>
+  <li>Decide <b>OK / NO OK</b> en menos de un segundo y marca en la foto dónde está el posible defecto.</li>
+  <li>Muestra en pantalla los totales del turno, el % de NO OK, las toallas por hora y los tipos de defecto más frecuentes.</li>
+  <li>Avisa si algo anda mal: muchas NO OK seguidas (posible problema de máquina o de lote), demasiadas NO OK, fotos dañadas o la línea sin actividad.</li>
+  <li>El operador confirma cada NO OK con un clic: <b>"defecto real" o "falsa alarma"</b>. Así medimos el desempeño real y juntamos ejemplos para mejorar el sistema.</li>
+  <li>Exporta el reporte del turno a Excel (CSV).</li>
+</ul>
+<figure><img src="{{IMG:tablero_en_vivo.png}}" alt="Pantalla en vivo de la línea"><figcaption>Pantalla en vivo durante una prueba con fotos de la cámara de producción.</figcaption></figure>
+
+<h2>Propuesta de siguientes pasos</h2>
+<div class="phase"><div class="t">1 · Piloto en la línea <span class="w">· 2–4 semanas</span></div>
+El sistema corre junto a la inspección actual, sin rechazar piezas por su cuenta. Los operadores confirman las alertas en la pantalla. <b>Resultado:</b> la tasa real de detección y de falsas alarmas en la línea, y el ajuste recomendado.</div>
+<div class="phase"><div class="t">2 · Mejorar las fotos y los ejemplos <span class="w">· 1–2 meses · el paso de mayor impacto</span></div>
+Instalar iluminación y fondo fijos en la estación de la cámara, para que todas las fotos se vean igual. Además, etiquetar al menos 150 ejemplos de cada defecto difícil (manchas pequeñas, hilos, costuras en esquinas, teñido tenue), aprovechando los confirmados en el piloto.</div>
+<div class="phase"><div class="t">3 · Nueva versión del modelo <span class="w">· 2–4 meses</span></div>
+Reentrenar con las fotos de la línea y agregar un detector especial para el teñido. <b>Meta:</b> detectar ≥ 95 % de las toallas con defecto y mandar a revisión ≤ 15 % de las buenas.</div>
+<div class="phase"><div class="t">4 · Operación continua <span class="w">· después del piloto</span></div>
+Mejora mensual con las confirmaciones de los operadores. Cuando los números lo justifiquen, conectar el sistema a la máquina para <b>separar automáticamente</b> las toallas NO OK.</div>
+
+<h2>Qué se necesita de la empresa</h2>
+<table>
+  <tr><th>Recurso</th><th>Detalle</th></tr>
+  <tr><td>Computadora en la línea</td><td>PC con tarjeta gráfica NVIDIA de 6 GB o más (similar a una RTX 3060), conectada a la carpeta donde la cámara guarda las fotos, y una pantalla visible para el operador.</td></tr>
+  <tr><td>Tiempo de operadores</td><td>Confirmar las alertas en pantalla durante el piloto: un clic por toalla marcada.</td></tr>
+  <tr><td>Etiquetado</td><td>Unas 20–30 horas de una persona que conozca los defectos para marcar ejemplos nuevos.</td></tr>
+  <tr><td>Estación de foto</td><td>Iluminación y fondo fijos; cámara a distancia fija. Si se cambia la cámara o la luz, hay que recalibrar el sistema con unas decenas de fotos de piezas buenas.</td></tr>
+</table>
+
+<h2>Riesgos y precauciones</h2>
+<ul>
+  <li>Los resultados vienen de unas 230 toallas de prueba. <b>El piloto es indispensable</b> antes de rechazar piezas automáticamente.</li>
+  <li>Si cambian la cámara, la luz o el modelo de toalla, el sistema debe recalibrarse.</li>
+  <li>Las toallas con defecto "no visible" en la foto no pueden detectarse de forma confiable con una cámara.</li>
+  <li>Seguridad: la pantalla debe usarse solo en la red interna de la planta. La contraseña de la herramienta de etiquetado (Label Studio) estuvo publicada y debe cambiarse.</li>
+</ul>
+
+<footer>Cifras medidas en fotos de prueba que el sistema no vio durante su entrenamiento. Detalle técnico en el reporte técnico adjunto.</footer>
+<script>
+function dots(id, n, a, ca, cb) { const el = document.getElementById(id); let h = ""; for (let i = 0; i < n; i++) h += `<i style="background:${i < a ? ca : cb}"></i>`; el.innerHTML = h; }
+dots("d1", 100, 90, "#0ca30c", "#d03b3b");
+dots("d2", 100, 62, "#c9c8c2", "#eda100");
+</script>
+</body></html>

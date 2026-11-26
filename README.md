@@ -159,8 +159,19 @@ Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/
 
 **Versiones:** la versión del paquete y su historial de cambios viven en `src/galia/service/static/cambios.json` (la entrada más reciente va primero). De ahí salen el nombre del zip (`dist/Inspector_Toallas_v<versión>.zip`), la versión en el tablero (botón *Novedades*), la portada de `LEEME.pdf` y su sección 14. Para publicar una versión nueva: agregar una entrada al inicio de `cambios.json` y correr `python scripts/build_delivery.py`. La propuesta de estación de captura tiene su propia versión (`DOC_VERSION` en `scripts/build_propuesta.py` → `docs/propuesta_estacion_captura_v<versión>.pdf`).
 
+**Documentos (todos se regeneran con Python, sin correr ningún modelo):**
+
+| Documento | Fuente editable | Comando |
+|---|---|---|
+| `LEEME.pdf` del paquete | `entrega/LEEME.html` + `entrega/guia/*.png` | `python scripts/build_delivery.py` |
+| Propuesta de estación de captura | `docs/propuesta_estacion/propuesta_estacion_captura.html` | `python scripts/build_propuesta.py` |
+| Reportes técnico y ejecutivo | `docs/reportes/fuente/*.html` + `fuente/img/*.png` | `python scripts/build_reportes.py` |
+| Diagramas de la red | `docs/diagramas/generar_diagramas.py` | `python docs/diagramas/generar_diagramas.py` (luego `build_reportes.py`) |
+
+Los PDF se imprimen con Microsoft Edge en modo headless.
+
 ```bash
-python scripts/build_delivery.py      # -> dist/Inspector_Toallas/ y dist/Inspector_Toallas.zip (~120 MB)
+python scripts/build_delivery.py      # -> dist/Inspector_Toallas_v<versión>.zip
 ```
 
 Carpeta autocontenida para alguien sin experiencia en IA: `INSTALAR.bat` (crea un entorno de Python e instala PyTorch con GPU o CPU), `INICIAR.bat` (servicio + tablero; panel **Cómo empezar** con demostración, análisis de una carpeta y la ruta para conectar la cámara), `CALIBRAR.bat` (calibración con fotos de toallas buenas), `configuracion.ini` (carpetas, punto de operación, logo y colores de la empresa), `camara/capturar.py` (Raspberry Pi o cámara USB, con disparo por tecla, intervalo o sensor GPIO; entrega por carpeta o por HTTP), una demo de 24 toallas de test con su respuesta correcta y `LEEME.pdf` con las instrucciones. Las plantillas están en [`entrega/`](entrega/).
@@ -202,7 +213,8 @@ src/galia/          código reutilizable (config, datos, recortes, máscara, mod
 scripts/04-08       construcción del dataset, entrenamiento y evaluación
 scripts/predict.py  inferencia por lotes
 scripts/serve.py    servicio de línea + tablero en vivo (src/galia/service/)
-scripts/build_delivery.py  arma el paquete para la empresa (dist/Inspector_Toallas.zip)
+scripts/build_delivery.py  arma el paquete para la empresa (dist/Inspector_Toallas_v<versión>.zip)
+scripts/build_reportes.py  reportes técnico y ejecutivo (HTML + PDF) desde docs/reportes/fuente/
 entrega/            plantillas del paquete: instaladores, configuracion.ini, LEEME, captura con Raspberry Pi
 notebooks/05-09     análisis y visualizaciones del pipeline v2
 notebooks/01-04     modelos históricos (v1), se conservan como referencia

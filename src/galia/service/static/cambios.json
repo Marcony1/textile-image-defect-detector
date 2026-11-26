@@ -11,34 +11,97 @@
     ]
   },
   {
-    "version": "1.2.1",
+    "version": "1.2.6",
     "fecha": "2026-11-23",
     "titulo": "Compatibilidad con más tarjetas gráficas",
     "cambios": [
       "INSTALAR elige la versión de PyTorch según la tarjeta NVIDIA (RTX 50 «Blackwell» → PyTorch 2.7.1 / CUDA 12.8), la prueba y, si no funciona, instala la versión para procesador.",
-      "Si la tarjeta no es compatible, el programa ya no falla: analiza con el procesador y lo avisa en el tablero.",
-      "Se quitó el aviso repetido «'half' is deprecated» de la consola."
+      "Si la tarjeta no es compatible, el programa ya no falla: analiza con el procesador y lo avisa en el tablero."
+    ]
+  },
+  {
+    "version": "1.2.5",
+    "fecha": "2026-11-21",
+    "titulo": "Conexión con PLC",
+    "cambios": [
+      "Conexión con el PLC de la línea por Modbus TCP: el PLC lee la decisión, el número de toalla y el estado del sistema; el tablero muestra si el PLC está conectado.",
+      "PROBAR_PLC.bat simula un PLC para probar la conexión sin equipo."
+    ]
+  },
+  {
+    "version": "1.2.4",
+    "fecha": "2026-11-21",
+    "titulo": "Python incluido en el paquete",
+    "cambios": [
+      "Python 3.11 portátil incluido en el zip: INSTALAR ya no descarga ni descomprime nada (evita que el antivirus lo mande a cuarentena)."
+    ]
+  },
+  {
+    "version": "1.2.3",
+    "fecha": "2026-11-21",
+    "titulo": "Consola más limpia",
+    "cambios": [
+      "Se quitó el aviso repetido «'half' is deprecated» de la consola (mismo resultado de detección)."
+    ]
+  },
+  {
+    "version": "1.2.2",
+    "fecha": "2026-11-21",
+    "titulo": "Python portátil oficial",
+    "cambios": [
+      "INSTALAR usa el Python 3.11 portátil oficial en vez del instalador .exe, que algunos equipos bloqueaban («acceso denegado»)."
+    ]
+  },
+  {
+    "version": "1.2.1",
+    "fecha": "2026-11-20",
+    "titulo": "Python 3.11 obligatorio",
+    "cambios": [
+      "INSTALAR exige Python 3.11 (lo instala solo si falta) y rehace entornos creados con otra versión (error de numpy con Python 3.10).",
+      "INSTALAR avisa si se ejecuta desde dentro del zip sin descomprimir."
     ]
   },
   {
     "version": "1.2.0",
-    "fecha": "2026-11-21",
-    "titulo": "Conexión con PLC y Python incluido",
+    "fecha": "2026-11-20",
+    "titulo": "Etiquetador, curva de exigencia e historial",
     "cambios": [
-      "Conexión con el PLC de la línea por Modbus TCP: el PLC lee la decisión, el número de toalla y el estado del sistema; el tablero muestra si el PLC está conectado. PROBAR_PLC.bat simula un PLC.",
-      "Python 3.11 portátil incluido en el paquete: INSTALAR ya no descarga ni descomprime nada (evita bloqueos del antivirus).",
-      "INSTALAR crea el entorno en una ruta corta y avisa si se ejecuta desde dentro del zip."
+      "Etiquetador integrado: marcar dónde está cada defecto para mejorar el modelo, y exportar las etiquetas.",
+      "Curva «lo que se gana y lo que cuesta» junto al control de Exigencia.",
+      "Botones para borrar la demostración y empezar un historial nuevo (con respaldo).",
+      "Guía del tablero, elemento por elemento, en las instrucciones."
     ]
   },
   {
     "version": "1.1.0",
     "fecha": "2026-11-20",
-    "titulo": "Exigencia, etiquetador e historial",
+    "titulo": "Control de Exigencia",
     "cambios": [
-      "Control de Exigencia: deslizador para hacer la detección más o menos estricta, con la curva «lo que se gana y lo que cuesta».",
-      "Etiquetador integrado: marcar dónde está cada defecto para mejorar el modelo, y exportar las etiquetas.",
-      "Botones para borrar la demostración y empezar un historial nuevo (con respaldo).",
-      "Guía del tablero, elemento por elemento, en las instrucciones."
+      "Deslizador de Exigencia en el tablero para hacer la detección más o menos estricta, con la estimación de defectos detectados y falsas alarmas."
+    ]
+  },
+  {
+    "version": "1.0.3",
+    "fecha": "2026-11-20",
+    "titulo": "Entorno en ruta corta",
+    "cambios": [
+      "INSTALAR crea el entorno en %LOCALAPPDATA%\\InspectorToallas para evitar el error de rutas de más de 260 caracteres."
+    ]
+  },
+  {
+    "version": "1.0.2",
+    "fecha": "2026-11-19",
+    "titulo": "Instalador más flexible",
+    "cambios": [
+      "INSTALAR encuentra Python de python.org, Miniconda o Anaconda aunque no esté en el PATH."
+    ]
+  },
+  {
+    "version": "1.0.1",
+    "fecha": "2026-11-19",
+    "titulo": "Imagen de Galia Textil",
+    "cambios": [
+      "Tablero con el logo y los colores oficiales de Galia Textil (azul marino y naranja)."
     ]
   },
   {
@@ -46,7 +109,8 @@
     "fecha": "2026-11-19",
     "titulo": "Primera entrega para la prueba en planta",
     "cambios": [
-      "Tablero en vivo, demostración con 24 toallas, análisis de carpetas, calibración para otra cámara, instalador para Windows y Linux."
+      "Tablero en vivo, demostración con 24 toallas, análisis de carpetas, calibración para otra cámara, instalador para Windows y Linux.",
+      "Modelo: ensamble de 2 redes EfficientNet-B0 con calibración por cámara (detecta ≈ 90 % de los defectos con ≈ 15 % de falsas alarmas en el conjunto de prueba)."
     ]
   }
 ]

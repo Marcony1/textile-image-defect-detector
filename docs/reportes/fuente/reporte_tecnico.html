@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Reporte técnico · Detección de defectos en toallas v2</title>
+<style>@page { size: A4; margin: 16mm 16mm 18mm; }
+:root { --ink: #1b1b1a; --ink2: #52514e; --ink3: #8a8984; --line: #e2e1dc; --soft: #f4f4f1;
+        --blue: #2a78d6; --good: #0ca30c; --bad: #d03b3b; --warn: #b57a00; }
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 800px; padding: 24px 16px; color: var(--ink); background: #fff;
+       font: 10.5pt/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+@media print { body { padding: 0; max-width: none; } }
+h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 14pt; margin: 26px 0 8px; padding-top: 6px; border-top: 2px solid var(--ink); break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 18px 0 6px; break-after: avoid; }
+p { margin: 6px 0 8px; }
+ul, ol { margin: 6px 0 10px; padding-left: 20px; }
+li { margin: 3px 0; }
+.lead { font-size: 12pt; color: var(--ink2); margin-bottom: 14px; }
+.meta { color: var(--ink3); font-size: 9.5pt; margin-bottom: 18px; }
+.audience { display: inline-block; font-size: 9pt; color: var(--ink2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; break-inside: avoid; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink2); border-bottom: 1.5px solid var(--ink2); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.hl td { background: #eef5fd; font-weight: 600; }
+figure { margin: 10px 0 14px; break-inside: avoid; }
+figure img { width: 100%; border: 1px solid var(--line); border-radius: 4px; display: block; }
+figcaption { font-size: 9pt; color: var(--ink2); margin-top: 4px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 16px; break-inside: avoid; }
+.kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.kpi .v { font-size: 22pt; font-weight: 650; letter-spacing: -.02em; line-height: 1.1; }
+.kpi .l { font-size: 9pt; color: var(--ink2); }
+.kpi.g .v { color: var(--good); } .kpi.b .v { color: var(--bad); } .kpi.u .v { color: var(--blue); }
+.box { border-left: 3px solid var(--blue); background: var(--soft); padding: 8px 12px; margin: 10px 0; break-inside: avoid; }
+.box.warn { border-color: var(--warn); }
+.box.bad { border-color: var(--bad); }
+.box b:first-child { display: block; margin-bottom: 2px; }
+code { font: 9pt Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+pre { font: 8.5pt/1.45 Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 8px 10px; border-radius: 4px; overflow-x: auto; break-inside: avoid; white-space: pre-wrap; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pb { break-before: page; }
+.phase { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
+.phase .t { font-weight: 650; }
+.phase .w { color: var(--ink3); font-size: 9pt; }
+.bar { display: grid; grid-template-columns: 150px 1fr 54px; align-items: center; gap: 8px; margin: 5px 0; font-size: 10pt; }
+.bar .tr { height: 16px; background: var(--soft); border-radius: 0 4px 4px 0; }
+.bar .tr i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.bar .v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; max-width: 360px; margin: 6px 0; }
+.dots i { aspect-ratio: 1; border-radius: 50%; display: block; }
+.legend { font-size: 9pt; color: var(--ink2); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 4px 0 10px; vertical-align: -1px; }
+footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink3); font-size: 8.5pt; }
+ul { list-style: none; padding-left: 16px; }
+ul > li { position: relative; }
+ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--ink2); }
+</style></head>
+<body>
+
+<span class="audience">Reporte técnico · equipo de datos e ingeniería</span>
+<h1>Detección automática de defectos en toallas<br>Pipeline v2: resultados y propuesta de mejora</h1>
+<div class="meta">Proyecto textile-image-defect-detector · rama <code>v2-recortes-ensamble</code> · noviembre 2026</div>
+
+<p class="lead">El pipeline v2 sube el recall de toallas defectuosas de <b>22 % a 92 %</b> en un conjunto de prueba que ningún modelo vio. Lo logra con tres cambios: procesar la foto a resolución nativa por recortes, usar redes preentrenadas y calibrar el umbral por cámara. Además, el sistema queda listo para operar en la línea: un servicio vigila la carpeta de la cámara y publica un tablero en vivo. Este reporte describe el método y los resultados, explica dónde falla y propone los siguientes pasos.</p>
+
+<div class="kpis">
+  <div class="kpi g"><div class="v">92 %</div><div class="l">recall de toallas NO OK (test, 68/74)<br>v1: 22 %</div></div>
+  <div class="kpi b"><div class="v">28 %</div><div class="l">falsas alarmas: toallas OK enviadas a revisión (44/157); 15 % con <code>recall_95</code></div></div>
+  <div class="kpi u"><div class="v">0.8 s</div><div class="l">tiempo de análisis por toalla<br>(RTX 3060 Laptop, 6 GB)</div></div>
+</div>
+
+<h2>1. Diagnóstico de la versión 1</h2>
+<ul>
+  <li><b>Pérdida de resolución.</b> Las fotos de 5120×5120 se reducían a 640 px para YOLO y a 256 px para las CNN, es decir, 8 y 20 veces menos resolución. Un hilo de 40 px quedaba en 2 a 5 px, por debajo de lo que una red puede ver. En escala de producción, el lado menor mediano de una caja de <i>Hilo</i> es de ~35 px y el de <i>Costura</i>, de ~50 px.</li>
+  <li><b>Pocos datos y mucha fragmentación:</b> ~270 fotos repartidas en 14 clases, varias con menos de 10 ejemplos.</li>
+  <li><b>Validación contaminada:</b> en los notebooks 01–02, el set de prueba se usaba también como validación. El notebook 03 no convergió.</li>
+  <li><b>Datos nuevos sin usar:</b> no se aprovechaban <code>02_New_Annotated</code> (junio 2025) ni las ~800 fotos OK de abril.</li>
+</ul>
+
+<h2>2. Datos</h2>
+<table>
+  <tr><th>Fuente</th><th>Contenido</th><th class="n">Toallas</th><th>Cámara</th><th>Anotación</th></tr>
+  <tr><td>A</td><td><code>01_annotated_data</code> (NO OK)</td><td class="n">226</td><td>abril 2025, 5120×5120</td><td>cajas, 14 clases; 48 "No visible"</td></tr>
+  <tr><td>B</td><td><code>02_New_Annotated/imagenes no ok</code></td><td class="n">262</td><td>junio 2025, 3580×2150</td><td>cajas, 19 clases</td></tr>
+  <tr><td>C</td><td><code>02_New_Annotated/imagenes ok</code></td><td class="n">249</td><td>junio 2025</td><td>solo <i>Etiqueta</i> (control)</td></tr>
+  <tr><td>D</td><td><code>new_by_category/PIEZAS OK</code></td><td class="n">801</td><td>abril 2025</td><td>sin cajas</td></tr>
+  <tr class="hl"><td colspan="2">Total</td><td class="n">1,538</td><td colspan="2">split por toalla 70/15/15: 1,076 / 231 / 231</td></tr>
+</table>
+<ul>
+  <li><b>Escala física común:</b> las fotos de abril se reducen ×0.62 para que un milímetro de tela ocupe los mismos píxeles que en la cámara de junio, que es la de producción.</li>
+  <li><b>Taxonomía unificada:</b> las 19 clases originales se agrupan en 6 grupos de defecto (<i>Mancha, Hilo, Costura, Tejido, Teñido, Empalme</i>) y <i>Etiqueta</i>. La etiqueta no es un defecto: es un <b>control</b> que no entra en la decisión OK/NO OK.</li>
+  <li><b>Split único por toalla</b>, estratificado por fuente y etiqueta y compartido por los tres modelos. Ningún recorte de una toalla de val/test se usa para entrenar.</li>
+  <li><b>Un archivo dañado:</b> <code>PIEZAS OK/20250402_114712702_0000000143_T0000_01_CAM.png</code> tiene un error de CRC en disco y se excluye automáticamente.</li>
+</ul>
+
+<h2>3. Método</h2>
+<h3>3.1 Recortes a resolución nativa</h3>
+<p>La foto de la toalla se divide en recortes con 25 % de traslape: 1024 px para YOLO y 512 px para el clasificador y PatchCore. Una máscara por saturación HSV, con 96 px de margen, descarta los recortes que caen solo en el fondo o en la máquina. Las detecciones se unen con NMS por clase y el score de la toalla es el <b>máximo</b> sobre sus recortes. Esto es compatible con producción: entra <b>una foto por toalla</b> y sale una decisión por toalla.</p>
+
+<h3>3.2 Modelos</h3>
+<table>
+  <tr><th>Modelo</th><th>Entrenamiento</th><th>Score de toalla</th><th class="n">AUC test</th></tr>
+  <tr><td>YOLO11s (ultralytics)</td><td>3,344 recortes de 1024 px, 80 épocas, ~3.5 h</td><td>máx. confianza de un defecto</td><td class="n">0.815</td></tr>
+  <tr class="hl"><td>2 × EfficientNet-B0 (timm, ImageNet)</td><td>13k recortes de 512 px con muestreo balanceado y negativos difíciles. Modelo A: 15 épocas + 6 de ajuste; modelo B: 15 épocas, otra semilla</td><td>prom. de los 2 recortes más sospechosos (probabilidad promediada entre modelos)</td><td class="n">0.936</td></tr>
+  <tr><td>PatchCore (Anomalib 2.7, WRN-50)</td><td>1,500 recortes de toallas OK; coreset del 1 % (15,360 vectores)</td><td>máx. anomalía dentro de la máscara</td><td class="n">0.756</td></tr>
+</table>
+
+<h3>3.3 La red neuronal del clasificador</h3>
+<p>El clasificador que toma la decisión es una <b>red neuronal convolucional EfficientNet-B0</b> (≈ 4.0 millones de parámetros), preentrenada con ImageNet y ajustada con nuestros recortes. Se usan <b>dos copias</b> con la misma arquitectura y distinto entrenamiento, y se promedian sus probabilidades. El diagrama 1 muestra el camino completo de la foto a la decisión.</p>
+<figure>{{SVG:pipeline_decision.svg}}<figcaption>Diagrama 1. Recorrido de una foto. La red (azul) solo ve recortes de 512 × 512 px. La toalla se decide con los recortes más sospechosos y una calibración por cámara (naranja).</figcaption></figure>
+<p><b>Cómo "mira" un recorte.</b> Cada capa convolucional aplica muchos filtros pequeños (3 × 3 o 5 × 5 píxeles) que se deslizan por la imagen. Cada filtro es un <b>detector aprendido</b>, y su salida en cada posición equivale a una "neurona". Las primeras capas detectan bordes y texturas del rizo; las siguientes combinan esas señales en hilos, costuras o manchas. A cada etapa la imagen se hace más pequeña (512 → 16 px) y el número de detectores crece (3 → 1 280 canales): la red cambia detalle espacial por significado. Al final, un <b>promedio global</b> resume cada canal en un número (1 280 neuronas) y <b>una neurona de salida</b> con función sigmoide da la probabilidad de que el recorte tenga un defecto.</p>
+<figure>{{SVG:cnn_efficientnet_b0.svg}}<figcaption>Diagrama 2. EfficientNet-B0 sobre un recorte de 512 × 512. Bajo cada bloque: tamaño de la salida (alto × ancho × canales). "MBConv6 5×5 ×2" = 2 bloques MBConv con expansión 6 y filtros de 5 × 5.</figcaption></figure>
+<p><b>El bloque MBConv</b> es la pieza que se repite 16 veces. Primero expande los canales (más detectores), luego filtra cada canal por separado (barato en cálculo) y una pequeña capa de <b>atención</b> decide qué canales importan para ese recorte. Después vuelve a comprimir los canales y suma la entrada original (<b>conexión residual</b>). Esta combinación logra mucha precisión con pocos parámetros, por eso la red corre en ≈ 1 s por toalla en una tarjeta gráfica de laptop.</p>
+<figure>{{SVG:bloque_mbconv.svg}}<figcaption>Diagrama 3. Estructura de un bloque MBConv.</figcaption></figure>
+<p>El mapa de calor del tablero sale de esta misma red: es la probabilidad de cada recorte, colocada en su posición dentro de la toalla.</p>
+
+<h3>3.4 Minería de negativos difíciles</h3>
+<p>Como basta un recorte para marcar la toalla, un solo recorte limpio sobre-confiado produce una falsa alarma. Tras el primer entrenamiento se calificaron <i>todos</i> los recortes de las 735 toallas OK de entrenamiento. Superaron 0.2 en 598 toallas, y se agregaron 2,601 recortes como "limpio" con peso ×3. Después se reentrenó 6 épocas con lr 1e-4. Resultado en test: el AUC por toalla subió de 0.888 a 0.935 sin calibrar.</p>
+
+<h3>3.5 Calibración por cámara y elección del umbral</h3>
+<p>Tras la minería apareció un efecto de dominio: con un umbral global, las toallas OK de abril bajaron a 10 % de falsas alarmas, pero las de junio subieron a 100 %. La razón es que el score base depende de la cámara (luz, fondo, sensor). Por eso cada score se estandariza contra las toallas OK de validación <b>de la misma cámara</b>, con un z-score robusto (mediana/IQR), y en producción se usa la calibración de junio.</p>
+<p>El umbral se fija en validación para alcanzar un recall objetivo (90/95/98 %). El método se elige por la menor tasa de falsas alarmas en validación. Se comparan modelos individuales, la regla OR (máximo de z-scores) y stacking logístico con umbral out-of-fold. Ganó el clasificador solo.</p>
+<figure><img src="{{IMG:score_ok_por_camara.png}}" alt="Histograma del score del clasificador en toallas OK por cámara"><figcaption>Figura 1. Score sin calibrar del clasificador en toallas OK de validación, por cámara. La de junio (producción) está desplazada hacia arriba.</figcaption></figure>
+
+<h2>4. Resultados</h2>
+<h3>4.1 Por toalla (231 toallas de test, umbral fijado en validación)</h3>
+<table>
+  <tr><th>Método</th><th class="n">AUC</th><th class="n">Recall NO OK</th><th class="n">Falsas alarmas OK</th><th class="n">Recall · solo junio</th><th class="n">F.A. · solo junio</th></tr>
+  <tr class="hl"><td>Clasificador (seleccionado)</td><td class="n">0.936</td><td class="n">91.9 %</td><td class="n">28.0 %</td><td class="n">90.0 %</td><td class="n">37.8 %</td></tr>
+  <tr><td>Ensamble OR (máx.)</td><td class="n">0.935</td><td class="n">95.9 %</td><td class="n">31.8 %</td><td class="n">95.0 %</td><td class="n">43.2 %</td></tr>
+  <tr><td>YOLO11s</td><td class="n">0.815</td><td class="n">91.9 %</td><td class="n">74.5 %</td><td class="n">97.5 %</td><td class="n">81.1 %</td></tr>
+  <tr><td>PatchCore</td><td class="n">0.756</td><td class="n">97.3 %</td><td class="n">79.0 %</td><td class="n">97.5 %</td><td class="n">94.6 %</td></tr>
+</table>
+<p>Punto de operación <code>recall_98</code>. El recall en test queda por debajo del objetivo de validación porque solo hay ~40 toallas NO OK por cámara (cada una vale 2.5 puntos). La curva completa del clasificador en la cámara de producción es:</p>
+<table>
+  <tr><th>Punto (objetivo en val)</th><th class="n">Recall NO OK (junio, test)</th><th class="n">Falsas alarmas OK</th><th class="n">Precisión NO OK</th></tr>
+  <tr><td><code>recall_90</code></td><td class="n">82.5 % (33/40)</td><td class="n">8.1 % (3/37)</td><td class="n">91.7 %</td></tr>
+  <tr><td><code>recall_95</code></td><td class="n">87.5 % (35/40)</td><td class="n">16.2 % (6/37)</td><td class="n">85.4 %</td></tr>
+  <tr class="hl"><td><code>recall_98</code> (por defecto)</td><td class="n">90.0 % (36/40)</td><td class="n">37.8 % (14/37)</td><td class="n">72.0 %</td></tr>
+</table>
+<div class="two"><figure><img src="{{IMG:roc_test.png}}" alt="Curvas ROC por toalla en test"><figcaption>Figura 2. ROC por toalla en test. Los puntos marcan el umbral <code>recall_98</code> elegido en validación.</figcaption></figure>
+<figure><img src="{{IMG:matriz_confusion_test.png}}" alt="Matriz de confusión del clasificador en test"><figcaption>Figura 2b. Matriz de confusión en test (231 toallas, punto <code>recall_98</code>): 68 VP, 6 FN, 44 FP, 113 VN.</figcaption></figure></div>
+
+<h3>4.2 YOLO por recortes (validación)</h3>
+<p>mAP50 global de 0.473 (v1: 0.25, con otro set de validación y otras clases). La etiqueta de control alcanza mAP50 = 0.96, lo que valida la escala y el pipeline de datos. Los defectos pequeños quedan en ~0.25.</p>
+<figure style="max-width:75%"><img src="{{IMG:yolo_map50_por_clase.png}}" alt="mAP50 por clase de YOLO"><figcaption>Figura 3. mAP50 por grupo (verde: clase de control).</figcaption></figure>
+
+<h3>4.3 ¿Qué se escapa?</h3>
+<figure><img src="{{IMG:recall_por_categoria.png}}" alt="Recall por categoría, captura y visibilidad"><figcaption>Figura 4. Recall en test por categoría original, por captura y por visibilidad (fuente A).</figcaption></figure>
+<p>Las toallas NO OK de junio con score más bajo tienen <b>un único defecto pequeño</b>: manchas de ~40 px, costuras en esquinas (a veces junto a la etiqueta), hilos de ~15 px y <b>franjas de teñido muy tenues</b> que atraviesan toda la toalla. Un recorte de 512 px no puede ver estas franjas como anomalía, porque ocurren a baja frecuencia sobre la toalla completa.</p>
+<figure><img src="{{IMG:toallas_no_detectadas.png}}" alt="Defectos de las toallas NO OK con menor score"><figcaption>Figura 5. Las 8 toallas NO OK de junio (test) con menor score del clasificador (versión de un solo modelo). En verde, la caja anotada.</figcaption></figure>
+<div class="box warn"><b>Ojo con las "No visible".</b> El modelo marca el 80 % de las toallas "NG No visible" de abril (8 de 10). Puede ser que el defecto sí deje rastro en la foto, o que el modelo aproveche diferencias de la sesión de captura: las NO OK y las OK de abril se fotografiaron por separado. La evaluación definitiva tiene que hacerse con toallas de la línea, donde OK y NO OK comparten la misma sesión.</div>
+
+
+<h3>4.4 Experimentos de mejora (decididos solo en validación)</h3>
+<p>Cada variante se comparó en las 230 toallas de validación. La comparación usa el AUC por toalla con intervalo bootstrap del 95 %, el ΔAUC pareado contra el modelo base y las falsas alarmas al 95 % de recall. Regla: aceptar solo mejoras consistentes en la cámara de producción y en el total; ante empate, quedarse con lo más simple. El test se evaluó <b>una sola vez</b>, con la variante ya elegida.</p>
+<table>
+  <tr><th>Variante</th><th class="n">AUC val</th><th class="n">AUC val · junio</th><th>Resultado</th></tr>
+  <tr><td>B0 base (v1 + negativos difíciles)</td><td class="n">0.904</td><td class="n">0.942</td><td>referencia</td></tr>
+  <tr><td>+ TTA (volteos H/V)</td><td class="n">0.889</td><td class="n">0.945</td><td>sin mejora</td></tr>
+  <tr><td>Aumentación fuerte (brillo/contraste 0.35, saturación 0.25, tono ±0.02, desenfoque, ruido, recorte 85–100 %)</td><td class="n">0.854</td><td class="n">0.942</td><td>peor en abril (0.81)</td></tr>
+  <tr><td>Aumentación fuerte + copiar-pegar defectos de train (624 recortes)</td><td class="n">0.861</td><td class="n">0.932</td><td>peor</td></tr>
+  <tr><td>ConvNeXt-Tiny</td><td class="n">0.722</td><td class="n">0.958</td><td>inestable entre cámaras</td></tr>
+  <tr><td>B0 base + ConvNeXt-T (top2)</td><td class="n">0.915</td><td class="n">0.958</td><td>descartado: depende de un modelo frágil</td></tr>
+  <tr class="hl"><td>B0 base + 2.º B0 (semilla 7), top2</td><td class="n">0.914</td><td class="n">0.949</td><td><b>elegido</b>; ΔAUC +0.009 [0.000, 0.021]</td></tr>
+</table>
+<p>La aumentación agresiva no ayuda con fotos de Keyence, que ya son uniformes: sube las falsas alarmas en toallas buenas de la otra cámara. La combinación de dos modelos de la misma familia sí da una ganancia pequeña y estable, a un costo de +0.13 s por toalla. En test, el AUC pasó de 0.900 a 0.936. En la cámara de producción, el recall subió 5–10 puntos en cada punto de operación, aunque las falsas alarmas en <code>recall_98</code> subieron de 27 % a 38 % (4 toallas). Con <code>recall_95</code>, el sistema nuevo supera al anterior en ambas métricas sobre todo el test: 90.5 % de recall con 15.3 % de falsas alarmas.</p>
+
+<h2>5. Producto para producción</h2>
+<p>El servicio (<code>scripts/serve.py</code>, FastAPI + SQLite) corre en la PC de la línea con GPU NVIDIA:</p>
+<ol>
+  <li>La cámara guarda cada foto en una carpeta de entrada. El servicio la toma cuando el archivo ya terminó de escribirse.</li>
+  <li>Un único worker en la GPU ejecuta el clasificador (decisión) y YOLO (ubicación y tipo), en ~0.8 s por toalla.</li>
+  <li>La foto se archiva en <code>archivo/AAAA-MM-DD/{OK,NO_OK,errores}</code>. Se genera una vista previa con mapa de calor y cajas, y el resultado se registra en SQLite.</li>
+  <li>El <b>tablero en vivo</b> (Server-Sent Events) muestra:
+    <ul>
+      <li>KPIs del turno, la última toalla y la lista de inspecciones.</li>
+      <li>Toallas por hora y tipos de defecto.</li>
+      <li>Alertas: 5 NO OK seguidas, más de 50 % NO OK en las últimas 50, errores de lectura, línea sin actividad.</li>
+      <li>La <b>revisión del operador</b>: defecto real / falsa alarma, con atajos de teclado.</li>
+    </ul>
+  </li>
+  <li>API REST: <code>/api/inspect</code> (subir una foto), <code>/api/summary</code>, <code>/api/inspections</code>, <code>/api/export.csv</code> para el reporte del turno, y <code>/api/health</code>.</li>
+</ol>
+<figure><img src="{{IMG:tablero_en_vivo.png}}" alt="Tablero en vivo"><figcaption>Figura 6. Tablero en vivo con 31 fotos de test de la cámara de junio enviadas por el simulador de línea (<code>scripts/simulate_line.py</code>).</figcaption></figure>
+<pre>python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --line-name "Línea 1"
+# pantalla de la línea: http://localhost:8000   (red interna: --host 0.0.0.0)</pre>
+<div class="box"><b>La revisión del operador vale más que el tablero.</b> Cada NO OK confirmada o descartada es una etiqueta nueva tomada <i>en la cámara de producción</i>. Así se mide la precisión real y se construye el dataset del siguiente reentrenamiento, sin costo extra de anotación.</div>
+
+<h2>6. Propuesta de mejora</h2>
+<p>El objetivo de la siguiente versión, medido en la cámara de producción, es <b>recall ≥ 95 % con falsas alarmas ≤ 15 %</b>.</p>
+
+<div class="phase"><div class="t">Fase 0 · Piloto en sombra <span class="w">· 2–4 semanas</span></div>
+<ul>
+  <li>Instalar el servicio en la línea sin desviar toallas. El inspector humano sigue igual y además confirma las NO OK en el tablero.</li>
+  <li>Cada turno, revisar una muestra de las OK (~5 %) para estimar los defectos que se escapan.</li>
+  <li>Recalibrar con ≥ 200 fotos OK de producción y, si la prevalencia real lo justifica, mover el punto de operación.</li>
+</ul></div>
+
+<div class="phase"><div class="t">Fase 1 · Datos y captura <span class="w">· 1–2 meses · mayor impacto esperado</span></div>
+<ul>
+  <li><b>Anotar ≥ 150 ejemplos</b> de cada tipo débil: manchas pequeñas, hilos, costura en esquinas y teñido tenue. Lo ideal es usar las NO OK confirmadas en el piloto.</li>
+  <li><b>Estandarizar la captura:</b> iluminación difusa cerrada, fondo uniforme, distancia y exposición fijas. Esto ataca de raíz el corrimiento entre cámaras.</li>
+  <li>Considerar <b>luz rasante</b> o una segunda toma para defectos de relieve (hilos, tejido), y un recorte dedicado para esquinas y etiqueta.</li>
+  <li>Definir un protocolo para "No visible": si el inspector no lo ve en la foto, no debe entrar al set de visión.</li>
+</ul></div>
+
+<div class="phase"><div class="t">Fase 2 · Modelos <span class="w">· 2–4 meses</span></div>
+<ul>
+  <li>Reentrenar el clasificador solo con la cámara de producción más las etiquetas del piloto. Probar recortes de 768 px y más miembros en la combinación (ConvNeXt-T y TTA ya se probaron sin ganancia estable, sección 4.4).</li>
+  <li><b>Detector de teñido a nivel toalla:</b> un modelo global de uniformidad de color (perfil de color por columna/fila sobre la máscara) para franjas largas y tenues.</li>
+  <li>Segunda etapa para reducir falsas alarmas: un verificador sobre los 3 recortes más sospechosos, con más contexto y más resolución.</li>
+  <li>PatchCore por modelo/color de toalla, entrenado con fotos OK de producción, como red de seguridad para defectos nuevos.</li>
+  <li>Revisar el ensamble cuando haya ≥ 150 NO OK de producción en validación.</li>
+</ul></div>
+
+<div class="phase"><div class="t">Fase 3 · Operación <span class="w">· continuo</span></div>
+<ul>
+  <li>Reentrenamiento mensual con las revisiones del operador; versionado de modelos y umbrales.</li>
+  <li>Monitoreo de deriva: score mediano de las OK por día, % NO OK y alerta de recalibración.</li>
+  <li>Integración con el PLC para <b>desviar automáticamente</b> las NO OK, solo cuando la precisión observada lo justifique.</li>
+  <li>Seguridad: el servicio no tiene autenticación y debe correr solo en la red interna. La contraseña de Label Studio que estuvo en el README debe rotarse.</li>
+</ul></div>
+
+<h2>7. Reproducibilidad</h2>
+<pre>conda env create -f environment.yml && conda activate galia_v2
+python scripts/04_build_dataset.py
+python scripts/05_train_yolo_tiles.py --epochs 80
+python scripts/06_train_tile_classifier.py --arch efficientnet_b0 --epochs 15
+python scripts/06b_mine_hard_negatives.py --weights models/tile_cls_efficientnet_b0_v1.pt
+python scripts/06_train_tile_classifier.py --init models/tile_cls_efficientnet_b0_v1.pt --epochs 6 --lr 1e-4 --hn-weight 3
+python scripts/07_train_patchcore.py --max-tiles 1500 --coreset 0.01
+python scripts/08_evaluate.py</pre>
+<p>El análisis completo con visualizaciones está en los notebooks 05–09. Las métricas detalladas están en <code>reports/metrics.md</code> y <code>reports/metrics.json</code>.</p>
+
+<footer>Las métricas de test se calcularon sobre toallas que ningún modelo vio durante el entrenamiento. Umbrales y selección de método se fijaron solo con validación.</footer>
+</body></html>
