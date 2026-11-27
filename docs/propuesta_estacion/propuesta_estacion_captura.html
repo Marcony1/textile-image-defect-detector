@@ -18,16 +18,34 @@ td.c { text-align: center; }
 
 <span class="audience">Propuesta técnica · equipo de montaje y mantenimiento</span>
 <h1>Estación de captura de fotos para la inspección automática de toallas</h1>
-<div class="meta"><b>Versión 1.1</b> · Galia Textil · Proyecto de inspección por visión · noviembre 2026</div>
+<div class="meta"><b>Versión 1.2</b> · Galia Textil · Proyecto de inspección por visión · noviembre 2026</div>
 
-<p class="lead">El software de inspección ya funciona: analiza la foto de cada toalla en ≈ 1 s, la decide OK / NO OK y avisa al PLC. Lo que más limita hoy su precisión es <b>la foto</b>: luz variable, resolución justa y una sola cara. Este documento propone cómo construir la estación que toma las fotos: un piloto con la cámara disponible y dos niveles de producción, más cómo hacer visible cada tipo de defecto y cómo diseñar la banda. Incluye diagramas, la función de cada pieza y una guía general de montaje.</p>
+<p class="lead">El software de inspección ya funciona: analiza la foto de cada toalla en ≈ 1 s, la decide OK / NO OK y avisa al PLC. Estas toallas van al <b>sector salud</b>, donde una toalla con cualquier defecto se desecha. El objetivo es doble: que <b>ninguna toalla con defecto llegue a un hospital</b> y que se <b>deseche el menor número posible de toallas buenas</b>. Lo que más limita hoy ambas cosas es <b>la foto</b>: luz variable, resolución justa y una sola cara. Este documento propone cómo construir la estación que toma las fotos: un piloto con la cámara disponible y dos niveles de producción, más cómo hacer visible cada tipo de defecto y cómo diseñar la banda. Incluye diagramas, la función de cada pieza y una guía general de montaje.</p>
 
-<div class="box warn"><b>Cambios respecto a la versión 1.0</b>Nuevos: §2 cómo hacer visible cada tipo de defecto (luz UV, infrarrojo, cámara térmica, láser 3D); §3 piloto con la cámara Raspberry Pi HQ disponible; §6 diseño de la banda y qué pasa si se detiene o no; piezas del piloto en §8. La estación de área industrial pasa a ser la estación 1 de producción inicial.</div>
+<div class="box warn"><b>Cambios respecto a la versión 1.1</b>Nueva sección «Menos defectos que pasan, menos toallas buenas desechadas», con las capas de protección. Además: <b>tres fotos</b> por toalla (luz rasante desde dos direcciones, §4); <b>ambas caras</b> en producción (§4.3); cámaras de orilla para costuras (§4.4); materia extraña en la tabla de defectos (§1); <b>liberación positiva</b> en el PLC (§7); prueba de fallas y toallas patrón por turno (§10); control de calidad de cada foto (§12); auditoría de las aprobadas y revisión de las apartadas (§13). La versión 1.1 agregó las técnicas por defecto (§2), el piloto con la cámara Raspberry Pi HQ (§3) y el diseño de la banda (§6).</div>
 
 <div class="box"><b>Resumen</b>
 <b>Piloto · Cámara Raspberry Pi HQ.</b> La cámara disponible (12 MP, a color) en un encierro con luz fija, con la banda detenida un instante en cada toalla. Sirve para la prueba y para comparar técnicas de iluminación.<br>
-<b>Estación 1 · Cámara industrial de área.</b> Una cámara a color de 20 MP con obturador global sobre la banda, dentro de un encierro, con <b>dos tipos de luz que se disparan una tras otra</b> (difusa y rasante): dos fotos por toalla, sin detener la banda. Usa el PLC y la PC con GPU que ya existen. Mejora sobre todo manchas, teñido, hilos sueltos y falsas alarmas.<br>
+<b>Estación 1 · Cámara industrial de área.</b> Una cámara a color de 20 MP con obturador global sobre la banda, dentro de un encierro, con <b>luces que se disparan una tras otra</b> (difusa y rasante desde dos direcciones): tres fotos por toalla, sin detener la banda. Lleva además dos cámaras de orilla para las costuras y, para ver la otra cara, un volteador y una segunda estación igual. Usa el PLC y la PC con GPU que ya existen. Mejora sobre todo manchas, teñido, hilos sueltos y falsas alarmas.<br>
 <b>Estación 2 · Producción con cámaras lineales.</b> Dos cámaras de barrido lineal: una ve la cara superior y otra la inferior, a través del hueco entre dos bandas, sin voltear la toalla. Más resolución, cualquier largo de toalla y separación automática. Es el paso siguiente si el piloto confirma el beneficio.</div>
+
+<h2>Menos defectos que pasan, menos toallas buenas desechadas</h2>
+<p>Con las fotos actuales hay que elegir un equilibrio. En el conjunto de prueba, con el ajuste de fábrica (<code>recall_95</code>), el sistema detecta ≈ 90 % de las toallas con defecto y aparta ≈ 15 % de las buenas. Con el ajuste más estricto (<code>recall_98</code>) detecta ≈ 92 %, pero aparta ≈ 28 % de las buenas. Galia elige ese punto con el <b>control de Exigencia</b> del tablero. Las que se escapan tienen un solo defecto pequeño o muy tenue (manchas de ~40 px, hilos de ~15 px, franjas de teñido muy leves) o un defecto en una parte que la foto no ve bien.</p>
+<p>La única forma de mejorar <b>las dos cifras a la vez</b> es que el defecto contraste más en la foto: entonces el modelo lo distingue de una toalla buena sin necesidad de ser más estricto. Por eso la estación se diseña en capas. Cada capa cierra un camino por el que una toalla defectuosa podría pasar como OK, o por el que una buena podría desecharse sin motivo:</p>
+<table>
+<tr><th>Capa</th><th>Qué evita</th><th>Cómo</th></tr>
+<tr><td><b>1. Ver toda la toalla</b></td><td>Defectos en la cara inferior, en orillas o fuera del cuadro</td><td>Ambas caras (§4.3), toalla completa en el campo con margen y extendida sin dobleces (§6), cámaras de orilla (§4.4)</td></tr>
+<tr><td><b>2. Ver con detalle</b></td><td>Hilos, pelos y costuras demasiado finos para la resolución</td><td>≤ 0.2 mm por píxel en toda la toalla y ≤ 0.1 mm por píxel en orillas y dobladillos (§1, §4.2)</td></tr>
+<tr><td><b>3. Ver con la luz correcta</b></td><td>Defectos que no contrastan con una sola luz, y brillos o sombras que parecen defectos</td><td>Difusa para color, rasante desde dos direcciones para relieve, polarización para quitar brillos y UV para aceites si el piloto lo confirma (§2)</td></tr>
+<tr><td><b>4. Luz y cámara constantes</b></td><td>Falsas alarmas por cambios de luz; defectos tenues tapados por la variación</td><td>Encierro, luz fija, exposición y balance de blancos fijos, tarjeta gris (§4, §10)</td></tr>
+<tr><td><b>5. Decidir con el equilibrio elegido</b></td><td>Un umbral que no corresponde a lo que Galia quiere</td><td>Control de Exigencia con la estimación de defectos detectados y buenas apartadas. La toalla es NO OK si <b>cualquiera</b> de sus fotos o caras lo es</td></tr>
+<tr><td><b>6. Fallar hacia el lado seguro</b></td><td>Toallas que pasan sin analizarse (falla de cámara, red o programa)</td><td><b>Liberación positiva</b>: solo pasa a aprobadas la toalla con un OK explícito y a tiempo; cualquier otra se aparta (§7)</td></tr>
+<tr><td><b>7. Rechazar fotos malas</b></td><td>Fotos desenfocadas, oscuras, incompletas o con la toalla doblada que «parecen OK»</td><td>Control automático de calidad de cada foto: si no pasa, la toalla se vuelve a fotografiar o se aparta (§12)</td></tr>
+<tr><td><b>8. Verificar en cada turno</b></td><td>Que la estación se desajuste sin que nadie lo note (foco, luz, cámara movida)</td><td><b>Toallas patrón</b> con defectos conocidos al iniciar cada turno; si el sistema no detecta alguna, se detiene la inspección automática (§10)</td></tr>
+<tr><td><b>9. Recuperar las buenas apartadas</b></td><td>Desechar toallas buenas por una falsa alarma</td><td>Opcional: una persona revisa solo las toallas apartadas (con la zona sospechosa marcada en el tablero) y regresa las buenas. Esto no aumenta los defectos que pasan (§13)</td></tr>
+<tr><td><b>10. Medir y mejorar</b></td><td>Escapes y falsas alarmas que nadie mide</td><td><b>Auditoría</b> de una muestra de las aprobadas; los escapes y las falsas alarmas se etiquetan en el tablero y entran al reentrenamiento, con varias semillas y modelos combinados (§12, §13)</td></tr>
+</table>
+<div class="box"><b>Por qué todas las capas</b>Ninguna capa sola resuelve el problema. La cámara y la luz deciden qué defectos son <i>visibles</i> y qué tan fácil es distinguirlos de una toalla buena. El modelo y el control de Exigencia deciden el equilibrio entre detectar y apartar. La liberación positiva, las toallas patrón y la auditoría garantizan que una falla del sistema no se convierta en una toalla defectuosa entregada. La revisión de las apartadas recupera las buenas sin dejar pasar defectos.</div>
 
 <h2>1. Qué necesita "ver" el sistema</h2>
 <p>Cada tipo de defecto se ve mejor con una luz distinta. La resolución debe ser suficiente para que el defecto más fino ocupe varios píxeles: un hilo de 1 mm necesita <b>al menos 4–5 píxeles</b>, es decir <b>≤ 0.2 mm por píxel</b>. Hoy trabajamos con ≈ 0.25 mm/px, en el límite.</p>
@@ -39,6 +57,7 @@ td.c { text-align: center; }
 <tr><td>Costura (saltada, abierta, torcida)</td><td>Relieve y línea irregular en orillas</td><td>Rasante + difusa</td><td>Orillas y esquinas</td></tr>
 <tr><td>Tejido (hoyo, rizo dañado, ralo)</td><td>Falta de material, textura distinta</td><td>Rasante; <b>contraluz</b> para hoyos</td><td>2–20 mm</td></tr>
 <tr><td>Empalme</td><td>Cambio de textura o línea transversal</td><td>Difusa + rasante</td><td>Ancho de la toalla</td></tr>
+<tr><td>Materia extraña (pelo, pelusa, insecto)</td><td>Línea o punto de otro color o brillo sobre el rizo</td><td>Difusa + rasante; la mayor resolución posible</td><td>Pelo: 0.05–0.1 mm de grosor (se ve por su largo y contraste)</td></tr>
 </table>
 
 <figure class="fig">
@@ -176,7 +195,7 @@ td.c { text-align: center; }
 
 
 <h2>4. Estación 1 · Cámara industrial de área</h2>
-<p>Una cámara toma la toalla completa de un solo disparo mientras pasa por la banda. La luz es estroboscópica: destellos de microsegundos que "congelan" el movimiento, así que no hace falta detener la banda. Por cada toalla se toman <b>dos fotos seguidas</b>: una con luz difusa y otra con luz rasante.</p>
+<p>Una cámara toma la toalla completa de un solo disparo mientras pasa por la banda. La luz es estroboscópica: destellos de microsegundos que "congelan" el movimiento, así que no hace falta detener la banda. Por cada toalla se toman <b>tres fotos seguidas</b>: luz difusa (A), luz rasante a lo largo (B) y luz rasante a lo ancho (C). Con una sola dirección de luz rasante, un hilo paralelo a ella casi no da sombra y puede escaparse.</p>
 
 <figure class="fig">
 <svg viewBox="0 0 760 380" role="img" aria-label="Vista lateral de la estación 1: banda, encierro, cámara arriba, dos barras de luz difusa, barra de luz rasante y sensor de presencia">
@@ -234,35 +253,36 @@ td.c { text-align: center; }
   <text x="586" y="264" class="sm">(referencia de color)</text>
   <line x1="584" y1="258" x2="530" y2="282" stroke="#52514e"/>
 </svg>
-<figcaption>Figura 3. Estación 1, vista lateral. La cámara queda perpendicular a la banda, centrada sobre el campo. Las luces difusas se disparan en la foto A y la rasante en la foto B.</figcaption>
+<figcaption>Figura 3. Estación 1, vista lateral. La cámara queda perpendicular a la banda, centrada sobre el campo. Las luces difusas se disparan en la foto A y la rasante en la foto B. La segunda barra rasante (foto C) va en un costado, a 90° de la primera, fuera del plano del dibujo.</figcaption>
 </figure>
 
-<h3>4.1 Cómo se toman las dos fotos</h3>
+<h3>4.1 Cómo se toman las tres fotos</h3>
 <figure class="fig">
-<svg viewBox="0 0 760 230" role="img" aria-label="Diagrama de tiempos: el sensor detecta la toalla, se dispara luz difusa con la foto A y 40 milisegundos después luz rasante con la foto B">
+<svg viewBox="0 0 760 276" role="img" aria-label="Diagrama de tiempos: el sensor detecta la toalla, se dispara luz difusa con la foto A, 40 milisegundos después luz rasante a lo largo con la foto B y 40 milisegundos más tarde luz rasante a lo ancho con la foto C">
   <g class="sm">
-    <text x="10" y="44">Sensor de presencia</text><text x="10" y="84">Luz difusa (A)</text><text x="10" y="124">Luz rasante (B)</text><text x="10" y="164">Disparo de cámara</text>
+    <text x="10" y="44">Sensor de presencia</text><text x="10" y="84">Luz difusa (A)</text><text x="10" y="124">Rasante a lo largo (B)</text><text x="10" y="164">Rasante a lo ancho (C)</text><text x="10" y="204">Disparo de cámara</text>
   </g>
   <g fill="none" stroke="#1b1b1a" stroke-width="1.8">
-    <path d="M150 48 L200 48 L200 30 L700 30"/>
-    <path d="M150 88 L320 88 L320 70 L328 70 L328 88 L700 88"/>
-    <path d="M150 128 L480 128 L480 110 L488 110 L488 128 L700 128"/>
-    <path d="M150 168 L318 168 L318 150 L330 150 L330 168 L478 168 L478 150 L490 150 L490 168 L700 168"/>
+    <path d="M150 48 L200 48 L200 30 L740 30"/>
+    <path d="M150 88 L320 88 L320 70 L328 70 L328 88 L740 88"/>
+    <path d="M150 128 L480 128 L480 110 L488 110 L488 128 L740 128"/>
+    <path d="M150 168 L640 168 L640 150 L648 150 L648 168 L740 168"/>
+    <path d="M150 208 L318 208 L318 190 L330 190 L330 208 L478 208 L478 190 L490 190 L490 208 L638 208 L638 190 L650 190 L650 208 L740 208"/>
   </g>
-  <g stroke="#8a8984" stroke-dasharray="3 3"><line x1="200" y1="20" x2="200" y2="190"/><line x1="324" y1="20" x2="324" y2="190"/><line x1="484" y1="20" x2="484" y2="190"/></g>
+  <g stroke="#8a8984" stroke-dasharray="3 3"><line x1="200" y1="20" x2="200" y2="228"/><line x1="324" y1="20" x2="324" y2="228"/><line x1="484" y1="20" x2="484" y2="228"/><line x1="644" y1="20" x2="644" y2="228"/></g>
   <g class="sm" text-anchor="middle">
-    <text x="200" y="206">0 ms: llega la toalla</text><text x="324" y="206">retraso fijo → foto A</text><text x="484" y="206">+40 ms → foto B</text>
+    <text x="200" y="244">0 ms: llega la toalla</text><text x="324" y="244">retraso fijo → foto A</text><text x="484" y="244">+40 ms → foto B</text><text x="644" y="244">+80 ms → foto C</text>
   </g>
-  <line x1="324" y1="222" x2="484" y2="222" stroke="#2a78d6" marker-start="url(#a4)" marker-end="url(#a4)"/>
-  <text x="560" y="226" class="sm" fill="#2a78d6">≈ 20 mm de avance a 0.5 m/s</text>
+  <line x1="324" y1="258" x2="644" y2="258" stroke="#2a78d6" marker-start="url(#a4)" marker-end="url(#a4)"/>
+  <text x="484" y="272" text-anchor="middle" class="sm" fill="#2a78d6">≈ 40 mm de avance entre A y C a 0.5 m/s</text>
   <defs><marker id="a4" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#2a78d6"/></marker></defs>
 </svg>
-<figcaption>Figura 4. Secuencia de disparo. El PLC (o el controlador de luces) dispara cada luz durante 50–100 µs junto con la cámara. El desfase de ≈ 20 mm entre las dos fotos no es problema: cada foto se analiza por separado.</figcaption>
+<figcaption>Figura 4. Secuencia de disparo. El PLC (o el controlador de luces) dispara cada luz durante 50–100 µs junto con la cámara. El desfase de unos centímetros entre las fotos no es problema: cada foto se analiza por separado, y la toalla es NO OK si cualquiera de ellas lo es.</figcaption>
 </figure>
 <ul>
-<li><b>Una sola cámara alcanza:</b> las cámaras industriales toman 2 fotos en menos de 50 ms. El controlador de iluminación alterna qué luz se enciende en cada disparo.</li>
+<li><b>Una sola cámara alcanza:</b> las cámaras industriales toman 3 fotos en menos de 100 ms. El controlador de iluminación alterna qué luz se enciende en cada disparo.</li>
 <li><b>Movimiento congelado:</b> con destellos de ≤ 100 µs y la banda a 0.5 m/s, la toalla se mueve 0.05 mm durante la foto, menos de un píxel.</li>
-<li><b>Nombre de archivo:</b> la cámara guarda <code>toalla_000123_A.jpg</code> y <code>toalla_000123_B.jpg</code>. El número permite al sistema y al PLC saber a qué toalla corresponde cada foto.</li>
+<li><b>Nombre de archivo:</b> la cámara guarda <code>toalla_000123_A.jpg</code>, <code>…_B.jpg</code> y <code>…_C.jpg</code>. El número permite al sistema y al PLC saber a qué toalla corresponde cada foto. Si falta alguna foto de una toalla, esa toalla se aparta.</li>
 </ul>
 
 <h3>4.2 Resolución según el tamaño de toalla</h3>
@@ -279,7 +299,10 @@ td.c { text-align: center; }
 <li><b>Volteador + segunda estación igual:</b> después de la primera captura, la toalla se voltea (rodillo volteador o transferencia en cascada) y pasa por una segunda estación idéntica.</li>
 <li><b>Estación 2 (siguiente sección):</b> una cámara lineal ve la cara inferior a través del hueco entre dos bandas, sin voltear la toalla. Es la solución más limpia para producción.</li>
 </ul>
-<p>Recomendación: empezar con la cara superior. Medir en el piloto qué porcentaje de defectos aparece solo por abajo y, con ese dato, decidir si se agrega la segunda cara.</p>
+<p><b>Recomendación para el sector salud: inspeccionar ambas caras en producción.</b> Si nadie ve la cara de abajo, un defecto que solo está ahí pasa siempre como OK, por bueno que sea el modelo. El piloto puede empezar con la cara superior y medir qué porcentaje de defectos aparece solo por abajo. La estación de producción, en cambio, debe incluir el volteador y la segunda estación, o pasar directo a la estación 2.</p>
+
+<h3>4.4 Orillas, dobladillos y costuras</h3>
+<p>Las costuras y los dobladillos están en las orillas, son finos y quedan iluminados de lado, por eso están entre los defectos que más se escapan. Se recomiendan <b>dos cámaras de orilla</b>, una por lado, con lente más cerrado (≤ 0.1 mm por píxel) y luz rasante propia. Cada una ve solo una franja de ≈ 10 cm a lo largo de su orilla. Sus fotos (<code>toalla_000123_O1.jpg</code>, <code>…_O2.jpg</code>) se analizan igual que las demás. En la estación 2, la cámara lineal ya da ≈ 0.12 mm/px y podría bastar; el piloto lo confirma.</p>
 
 <h2>5. Estación 2 · Producción con cámaras de barrido lineal</h2>
 <p>Una cámara lineal toma una sola línea de píxeles a la vez, miles de veces por segundo, mientras la toalla pasa por debajo. La imagen se arma línea por línea, como un escáner. Es la tecnología de los sistemas comerciales de inspección de tela, y <b>sí sirve para toallas terminadas sobre una banda</b>, con dos condiciones: velocidad estable con un <b>encoder</b> que marque el avance, y la toalla extendida.</p>
@@ -423,7 +446,8 @@ td.c { text-align: center; }
 </svg>
 <figcaption>Figura 6. Conexiones. El PLC dispara luces y cámara. Las fotos llegan a la PC por red. La PC devuelve la decisión al PLC por Modbus TCP: registro 2 = contador, registro 3 = decisión, registros 4–5 = número de toalla.</figcaption>
 </figure>
-<p><b>Tiempos:</b> el análisis tarda ≈ 1 s por foto con la tarjeta gráfica actual (≈ 2 s por toalla con dos fotos). La distancia entre la cámara y el punto de separación debe dar ese tiempo más un margen. El PLC lee el número de fotos en cola (registro 9); si crece de forma sostenida, la PC no alcanza el ritmo y hace falta una GPU más potente. El mapa completo de registros está en las instrucciones del programa (LEEME, sección 7.4).</p>
+<p><b>Liberación positiva (regla de seguridad):</b> el camino por defecto de cada toalla es <b>apartarla</b>. El PLC la manda a aprobadas solo si recibe, a tiempo y con su número, la decisión OK (registro 3 = 1). Cualquiera de estas situaciones la aparta: una decisión NO OK, una «foto ilegible», que no llegue decisión, que el latido se detenga (registro 0), que el estado no sea «listo» (registro 1) o que el número no coincida. Así, una falla de cámara, de red o del programa nunca deja pasar una toalla sin revisar. Esta regla se prueba en la puesta en marcha (§10, paso 8).</p>
+<p><b>Tiempos:</b> el análisis tarda ≈ 0.8 s por foto con la tarjeta gráfica actual, es decir ≈ 2.4 s por toalla con tres fotos, más las de orilla y las de la otra cara. Para ese volumen conviene una GPU más potente o una segunda PC. La distancia entre la cámara y el punto de separación debe dar ese tiempo más un margen. El PLC lee el número de fotos en cola (registro 9); si crece de forma sostenida, la PC no alcanza el ritmo y hace falta una GPU más potente. El mapa completo de registros está en las instrucciones del programa (LEEME, sección 7.4).</p>
 
 <h2>8. Piezas y su función</h2>
 <table>
@@ -433,7 +457,10 @@ td.c { text-align: center; }
 <tr><td>Lente fijo de baja distorsión (montura C/F/M42 según la cámara)</td><td>Nitidez de borde a borde; el foco no se mueve</td><td class="c">●</td><td class="c">●</td></tr>
 <tr><td>Filtro polarizador en el lente + polarizadores en las luces</td><td>Eliminar brillos y reflejos del rizo y de la banda</td><td class="c">●</td><td class="c">●</td></tr>
 <tr><td>Barras LED blancas de alta potencia con difusor, CRI &gt; 90, aptas para estrobo (×2)</td><td>Luz difusa pareja: color fiel para manchas y teñido</td><td class="c">●</td><td class="c"></td></tr>
-<tr><td>Barra LED angosta para luz rasante</td><td>Sombras de relieve: hilos, costuras, rizo dañado</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Barras LED angostas para luz rasante (×2: a lo largo y a lo ancho)</td><td>Sombras de relieve desde dos direcciones: hilos en cualquier orientación, costuras, rizo dañado</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Cámaras de orilla (×2) con lente cerrado y luz rasante propia</td><td>Ver costuras y dobladillos a ≤ 0.1 mm por píxel</td><td class="c">●</td><td class="c">○</td></tr>
+<tr><td>Volteador + segunda estación igual (o pasar a la estación 2)</td><td>Ver la cara inferior</td><td class="c">●</td><td class="c"></td></tr>
+<tr><td>Juego de toallas patrón con defectos conocidos (al menos una por tipo de defecto), guardado en bolsa cerrada</td><td>Verificar al inicio de cada turno que el sistema sigue detectando</td><td class="c">●</td><td class="c">●</td></tr>
 <tr><td>Líneas LED de alta intensidad: campo claro + rasante (×2 juegos)</td><td>Iluminar la línea que ve cada cámara lineal</td><td class="c"></td><td class="c">●</td></tr>
 <tr><td>Contraluz LED (opcional, bajo una zona translúcida)</td><td>Ver hoyos y tejido ralo en orillas</td><td class="c">○</td><td class="c">○</td></tr>
 <tr><td>Controlador de iluminación estroboscópica con entradas de disparo (multiplexado en est. 2)</td><td>Encender cada luz durante microsegundos, sincronizada con la cámara</td><td class="c">●</td><td class="c">●</td></tr>
@@ -486,6 +513,8 @@ td.c { text-align: center; }
 <li><b>Movimiento:</b> con la banda a velocidad normal, verifique que el rizo se vea igual de nítido que con la banda detenida.</li>
 <li><b>Prueba de secuencia:</b> pase 20 toallas y confirme que hay dos fotos por toalla (A y B), con el número correcto, y que el PLC recibe una decisión por toalla (use <code>PROBAR_PLC.bat</code>).</li>
 <li><b>Calibración del sistema:</b> tome 30–60 fotos de toallas <b>buenas</b> y ejecute <code>CALIBRAR</code> del programa de inspección.</li>
+<li><b>Prueba de fallas:</b> con la banda en marcha, desconecte la cámara, luego el cable de red y luego cierre el programa, uno a la vez. En cada caso, las toallas que pasen deben quedar <b>apartadas</b>, nunca aprobadas.</li>
+<li><b>Toallas patrón:</b> pase el juego de toallas patrón y confirme que todas salen NO OK. Repítalo <b>al inicio de cada turno</b> y después de cualquier ajuste de cámara o luces. Si alguna sale OK, detenga la inspección automática hasta corregir el problema.</li>
 </ol>
 
 <h2>11. Efecto esperado</h2>
@@ -494,10 +523,11 @@ td.c { text-align: center; }
 <tr><td>Manchas pequeñas, teñido tenue</td><td>Se escapan algunas</td><td>Mejor: luz pareja y color calibrado</td><td>Mejor</td></tr>
 <tr><td>Hilos finos, costuras, rizo dañado</td><td>Difíciles (≈ 15 px)</td><td>Mucho mejor: luz rasante + más resolución</td><td>Mucho mejor: ≈ 0.12 mm/px</td></tr>
 <tr><td>Hoyos, tejido ralo</td><td>Regular</td><td>Mejor con rasante; contraluz opcional</td><td>Mejor</td></tr>
-<tr><td>Defectos en la cara inferior</td><td>Invisibles</td><td>Invisibles (salvo volteador)</td><td><b>Visibles</b></td></tr>
+<tr><td>Defectos en la cara inferior</td><td>Invisibles</td><td><b>Visibles</b> con volteador y segunda estación (recomendado)</td><td><b>Visibles</b></td></tr>
 <tr><td>Falsas alarmas por luz o cámara</td><td>Frecuentes si cambia la luz</td><td>Mucho menos: encierro + luz fija</td><td>Mucho menos</td></tr>
 <tr><td>Toallas largas (de baño)</td><td>Resolución justa</td><td>Requiere 2 cámaras o más MP</td><td>Sin límite</td></tr>
 <tr><td>Separación de las NO OK</td><td>Manual</td><td>Alarma al operador</td><td>Automática</td></tr>
+<tr><td>Toalla que pasa sin analizarse (falla)</td><td>Posible</td><td>No: liberación positiva</td><td>No: liberación positiva</td></tr>
 </table>
 <p>Estas mejoras se miden en la prueba: el tablero registra cada decisión y la confirmación del operador.</p>
 
@@ -505,13 +535,16 @@ td.c { text-align: center; }
 <ul>
 <li><b>Ya listo:</b> captura con la Raspberry Pi HQ (exposición y balance fijos, número de toalla, disparo por GPIO y aviso de foto tomada), recepción de fotos por red o carpeta, decisión en ≈ 1–2 s, entrega al PLC por Modbus TCP, tablero en vivo, etiquetado de defectos y calibración.</li>
 <li><b>Siguiente versión, cuando exista la estación:</b> agrupar las fotos de cada toalla por su número (A difusa, B rasante y, en su caso, cara inferior) y dar <b>una decisión por toalla</b> (NO OK si cualquier foto lo es).</li>
-<li><b>Reentrenamiento:</b> el modelo actual aprendió con fotos de luz difusa. Las fotos rasantes y las de la cara inferior requieren fotos etiquetadas de la nueva estación: ≈ 150 ejemplos por tipo de defecto y ≥ 300 toallas buenas. Se etiquetan desde el mismo tablero. Mientras tanto, el sistema decide con la foto difusa y guarda las demás para entrenar.</li>
+<li><b>Control de calidad de cada foto (siguiente versión):</b> antes de analizar una foto, el programa revisará que esté enfocada, bien expuesta, con la toalla completa dentro del cuadro y sin dobleces grandes. Si no pasa, la toalla se vuelve a fotografiar o se aparta: una foto mala nunca debe dar OK.</li>
+<li><b>Decisión por toalla con todas sus fotos:</b> la toalla es NO OK si cualquier foto (A, B, C, orillas u otra cara) lo es, y también si falta alguna.</li>
+<li><b>Reentrenamiento:</b> el modelo actual aprendió con fotos de luz difusa. Las fotos rasantes y las de la cara inferior requieren fotos etiquetadas de la nueva estación: ≈ 150 ejemplos por tipo de defecto y ≥ 300 toallas buenas. Se etiquetan desde el mismo tablero. Mientras tanto, el sistema decide con la foto difusa y guarda las demás para entrenar. Cada modelo nuevo se entrena varias veces con distintas semillas y se combinan los mejores. Para elegir se usa la misma regla del reporte de experimentos (documento 07): se adopta solo si detecta más defectos sin apartar más toallas buenas.</li>
 </ul>
 
 <h2>13. Plan por etapas</h2>
 <div class="phase"><div class="t">Etapa 0 · Piloto y prueba de técnicas <span class="w">· 2–4 semanas</span></div>Con la cámara Raspberry Pi HQ, un encierro provisional y la banda detenida en cada toalla: tomar las mismas 50–100 toallas (buenas y con defectos conocidos) con luz difusa, rasante desde dos direcciones, UV y, si se consigue, cámara térmica. Comparar qué técnica hace más visible cada defecto. Conectar el inspector y el PLC para la prueba con alarma. Define qué luces y qué cámara valen la pena antes de comprar todo.</div>
 <div class="phase"><div class="t">Etapa 1 · Estación 1 en la línea <span class="w">· 1–2 meses</span></div>Montaje, puesta en marcha y prueba con alarma al operador. Juntar fotos etiquetadas de la nueva estación y reentrenar el modelo con ellas.</div>
-<div class="phase"><div class="t">Etapa 2 · Estación 2 y separación automática <span class="w">· cuando la etapa 1 confirme el beneficio</span></div>Cámaras lineales, ambas caras y desviador. Conectar la decisión del sistema a la separación automática una vez validadas las cifras en la línea.</div>
+<div class="phase"><div class="t">Etapa 2 · Estación 2 y separación automática <span class="w">· cuando la etapa 1 confirme el beneficio</span></div>Cámaras lineales, ambas caras y desviador. Conectar la decisión del sistema a la separación automática, con liberación positiva, una vez validadas las cifras en la línea.</div>
+<div class="phase"><div class="t">Operación continua · desde el primer día en la línea</div>Toallas patrón al inicio de cada turno. <b>Auditoría de las aprobadas:</b> una persona revisa una muestra fija de las toallas aprobadas (por ejemplo, 1 de cada 50) y registra cualquier defecto que se haya escapado. <b>Revisión de las apartadas</b> (opcional): una persona revisa las toallas apartadas con la zona sospechosa marcada en el tablero y regresa las buenas. Los escapes y las falsas alarmas se etiquetan en el tablero y entran al siguiente reentrenamiento. Con las dos tasas, la de escapes de la auditoría y la de buenas apartadas, Galia ajusta el control de Exigencia.</div>
 
 <footer>Propuesta técnica preliminar: las medidas, ángulos y modelos exactos de cámara, lente e iluminación deben confirmarse con los proveedores, con el tamaño de toalla, la velocidad de la banda y el espacio disponible. Los diagramas son esquemáticos, no a escala.</footer>
 </body></html>

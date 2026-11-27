@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from documentos import nombre_archivo  # noqa: E402
 
 SRC = ROOT / "docs" / "propuesta_estacion" / "propuesta_estacion_captura.html"
-DOC_VERSION = "1.1"  # súbala cuando cambie el contenido (y anote el cambio en el recuadro de la portada)
+DOC_VERSION = "1.2"  # súbala cuando cambie el contenido (y anote el cambio en el recuadro de la portada)
 PDF = ROOT / "docs" / f"{nombre_archivo('propuesta')}_v{DOC_VERSION}.pdf"
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 

@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.4.1",
+    "fecha": "2026-11-26",
+    "titulo": "Regla de seguridad para el PLC",
+    "cambios": [
+      "Instrucciones (sección 7.4): el PLC debe aprobar una toalla solo cuando recibe un OK explícito, a tiempo y con su número. Cualquier otra situación la aparta: NO OK, foto ilegible, sin respuesta, programa detenido o número que no coincide. Así, una falla nunca deja pasar una toalla sin revisar."
+    ]
+  },
+  {
     "version": "1.4.0",
     "fecha": "2026-11-26",
     "titulo": "Probabilidades en el tablero",

@@ -86,7 +86,7 @@ Se crean al usarlo:
 <li>Cada toalla aparece con su decisión <b style="color:var(--good)">OK</b> o <b style="color:var(--bad)">NO OK</b>. En las NO OK, la zona sospechosa se ilumina y, si el sistema reconoce el tipo de defecto, lo encierra en un recuadro.</li>
 <li>Al terminar, el panel muestra cuántas acertó, una tabla con las detectadas, las que se escaparon y las falsas alarmas, y una lista de los errores (haga clic para verlos).</li>
 </ol>
-<div class="box"><b>Qué esperar</b>Las fotos de demostración son de la cámara con la que se entrenó el sistema y no se usaron para entrenarlo. En pruebas con 231 toallas, con el ajuste <code>recall_95</code>, el sistema detectó ~90 % de las toallas con defecto y mandó a revisión ~15 % de las buenas. Con pocas fotos, el resultado de la demostración puede variar.</div>
+<div class="box"><b>Qué esperar</b>Las fotos de demostración son de la cámara con la que se entrenó el sistema y no se usaron para entrenarlo. En pruebas con 231 toallas, con el ajuste <code>recall_95</code> (el de fábrica), el sistema detectó ~90 % de las toallas con defecto y mandó a revisión ~15 % de las buenas. Con <code>recall_98</code> detectó ~92 % pero mandó a revisión ~28 % de las buenas. El control de Exigencia (13.2) permite elegir ese equilibrio. Con pocas fotos, el resultado de la demostración puede variar.</div>
 
 <h2 id="s5">5. Probar con sus propias fotos</h2>
 <p>En el panel "Cómo empezar", paso 2, escriba la ruta de una carpeta con fotos (por ejemplo <code>D:\Fotos\lote_12</code>) y pulse <b>Analizar</b>. Las fotos originales <b>no se mueven</b>: se analiza una copia. Formatos: JPG, PNG, BMP, TIF.</p>
@@ -181,6 +181,12 @@ python3 capturar.py --servidor http://192.168.1.50:8000 --modo sensor --pin 17 -
 <tr><td class="n">21–29</td><td>Libres (escritura)</td><td>Para uso del PLC (ej. código de estado de la línea); el 21 se muestra en el tablero.</td></tr>
 </table>
 <p><b>Lógica sugerida en el PLC:</b> leer los registros 0–13 cada 100–200 ms. Cuando el registro 2 cambie, tomar la decisión (3) y el ID (4–5) y asociarlos a la toalla en seguimiento. Escribir el latido en el 20. Durante la prueba se recomienda usar la decisión solo para una <b>torreta o alarma</b>, no para separar toallas automáticamente.</p>
+<div class="box warn"><b>Regla de seguridad: liberar solo con un OK explícito</b>Estas toallas van al sector salud, así que el PLC debe fallar hacia el lado seguro. Una toalla pasa a «aprobadas» <b>solo</b> si llega, a tiempo y con su número (registros 4–5), la decisión <b>1 = OK</b>. En cualquier otro caso se aparta como NO OK:
+<ul><li>decisión 2 (NO OK) o 3 (la foto no se pudo leer);</li>
+<li>no llegó decisión antes de que la toalla alcance el punto de separación;</li>
+<li>el latido (registro 0) dejó de cambiar o el estado (registro 1) no es 1 = listo;</li>
+<li>el número de toalla no coincide con la toalla en seguimiento.</li></ul>
+Así, un corte de red, un error de cámara o un programa detenido nunca dejan pasar una toalla sin revisar.</div>
 <p><b>Tiempos:</b> el análisis tarda ≈ 1 s con tarjeta gráfica (registro 8). La distancia entre la cámara y el punto de rechazo debe dar ese tiempo más un margen. Si el registro 9 (cola) sube de forma sostenida, la PC no alcanza el ritmo.</p>
 
 <h3>7.5 Probar la conexión sin el PLC ni la cámara</h3>

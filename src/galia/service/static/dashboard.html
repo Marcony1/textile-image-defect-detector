@@ -783,7 +783,6 @@ async function loadStrict() {
   const pts = c.points, r = $("strict-range");
   r.max = pts.length - 1;
   strict.idx = nearestIdx(pts, st.threshold); r.value = strict.idx;
-  const names = { recall_90: "90", recall_95: "95 (recomendado)", recall_98: "98" };
   const def = st.operating_point;
   $("strict-ticks").innerHTML = Object.entries(c.presets).map(([k, t]) => {
     const i = nearestIdx(pts, t), left = (i / (pts.length - 1) * 100).toFixed(1);

@@ -1,5 +1,3 @@
-import os
-import json
 import random
 import shutil
 import numpy as np
