@@ -1,6 +1,6 @@
 """Regenera los archivos derivados del repositorio (sin entrenar ni usar ningún asistente de IA).
 
-    python scripts/actualizar.py                 # todo: diagramas, curva, reportes, propuesta y zip
+    python scripts/actualizar.py                 # todo: diagramas, curva, experimentos, reportes, propuesta y zip
     python scripts/actualizar.py reportes zip    # solo esos pasos, en ese orden
     python scripts/actualizar.py --lista         # qué hace cada paso
 
@@ -21,9 +21,12 @@ PASOS = {  # nombre: (descripción, comando)
     "curva": ("Curva de Exigencia y probabilidad orientativa -> models/curva_operacion.json "
               "(usa reports/scores_*.csv; no corre el modelo)",
               [PY, "scripts/10_operating_curve.py"]),
-    "reportes": ("Reportes técnico y ejecutivo (HTML + PDF) desde docs/reportes/fuente/",
+    "experimentos": ("Tablas y figuras del reporte de experimentos (07) desde reports/experiments/ y runs/ "
+                     "(no corre modelos; ~2 min de bootstrap)",
+                     [PY, "scripts/build_experimentos.py"]),
+    "reportes": ("Reportes 04 técnico, 05 ejecutivo y 07 experimentos (HTML + PDF) desde docs/reportes/fuente/",
                  [PY, "scripts/build_reportes.py"]),
-    "propuesta": ("Propuesta de estación de captura -> docs/propuesta_estacion_captura_v<versión>.pdf",
+    "propuesta": ("Propuesta de estación de captura -> docs/06_propuesta_estacion_captura_v<versión>.pdf",
                   [PY, "scripts/build_propuesta.py"]),
     "zip": ("Paquete para la empresa -> dist/Inspector_Toallas_v<versión>.zip (incluye LEEME.pdf)",
             [PY, "scripts/build_delivery.py"]),

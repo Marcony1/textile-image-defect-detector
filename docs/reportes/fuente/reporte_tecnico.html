@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Reporte técnico · Detección de defectos en toallas v2</title>
+<title>04 · Reporte técnico · Detección de defectos en toallas v2</title>
 <style>@page { size: A4; margin: 16mm 16mm 18mm; }
 :root { --ink: #1b1b1a; --ink2: #52514e; --ink3: #8a8984; --line: #e2e1dc; --soft: #f4f4f1;
         --blue: #2a78d6; --good: #0ca30c; --bad: #d03b3b; --warn: #b57a00; }
@@ -58,7 +58,7 @@ ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; widt
 
 <span class="audience">Reporte técnico · equipo de datos e ingeniería</span>
 <h1>Detección automática de defectos en toallas<br>Pipeline v2: resultados y propuesta de mejora</h1>
-<div class="meta">Proyecto textile-image-defect-detector · rama <code>v2-recortes-ensamble</code> · noviembre 2026</div>
+<div class="meta">Documento 04 · Proyecto textile-image-defect-detector · rama <code>v2-recortes-ensamble</code> · noviembre 2026</div>
 
 <p class="lead">El pipeline v2 sube el recall de toallas defectuosas de <b>22 % a 92 %</b> en un conjunto de prueba que ningún modelo vio. Lo logra con tres cambios: procesar la foto a resolución nativa por recortes, usar redes preentrenadas y calibrar el umbral por cámara. Además, el sistema queda listo para operar en la línea: un servicio vigila la carpeta de la cámara y publica un tablero en vivo. Este reporte describe el método y los resultados, explica dónde falla y propone los siguientes pasos.</p>
 
@@ -163,6 +163,7 @@ ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; widt
   <tr><td>B0 base + ConvNeXt-T (top2)</td><td class="n">0.915</td><td class="n">0.958</td><td>descartado: depende de un modelo frágil</td></tr>
   <tr class="hl"><td>B0 base + 2.º B0 (semilla 7), top2</td><td class="n">0.914</td><td class="n">0.949</td><td><b>elegido</b>; ΔAUC +0.009 [0.000, 0.021]</td></tr>
 </table>
+<p>La lista completa de experimentos, incluida la ronda 2 (ResNet50 y segmentador supervisado por cajas), está en el reporte de experimentos (documento 07).</p>
 <p>La aumentación agresiva no ayuda con fotos de Keyence, que ya son uniformes: sube las falsas alarmas en toallas buenas de la otra cámara. La combinación de dos modelos de la misma familia sí da una ganancia pequeña y estable, a un costo de +0.13 s por toalla. En test, el AUC pasó de 0.900 a 0.936. En la cámara de producción, el recall subió 5–10 puntos en cada punto de operación, aunque las falsas alarmas en <code>recall_98</code> subieron de 27 % a 38 % (4 toallas). Con <code>recall_95</code>, el sistema nuevo supera al anterior en ambas métricas sobre todo el test: 90.5 % de recall con 15.3 % de falsas alarmas.</p>
 
 <h2>5. Producto para producción</h2>

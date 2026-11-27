@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>07 · Experimentos de modelos · Detección de defectos en toallas</title>
+<!-- Fuente editable del documento 07. Los marcadores INC los rellena scripts/build_experimentos.py
+     (tablas calculadas de reports/experiments/); los IMG son figuras de fuente/img/. Regenerar: make experimentos -->
+<style>@page { size: A4; margin: 16mm 16mm 18mm; }
+:root { --ink: #1b1b1a; --ink2: #52514e; --ink3: #8a8984; --line: #e2e1dc; --soft: #f4f4f1;
+        --blue: #2a78d6; --good: #0ca30c; --bad: #d03b3b; --warn: #b57a00; }
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 800px; padding: 24px 16px; color: var(--ink); background: #fff;
+       font: 10.5pt/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+@media print { body { padding: 0; max-width: none; } }
+h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 14pt; margin: 26px 0 8px; padding-top: 6px; border-top: 2px solid var(--ink); break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 18px 0 6px; break-after: avoid; }
+p { margin: 6px 0 8px; }
+ul, ol { margin: 6px 0 10px; padding-left: 20px; }
+li { margin: 3px 0; }
+.lead { font-size: 12pt; color: var(--ink2); margin-bottom: 14px; }
+.meta { color: var(--ink3); font-size: 9.5pt; margin-bottom: 18px; }
+.audience { display: inline-block; font-size: 9pt; color: var(--ink2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; break-inside: avoid; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink2); border-bottom: 1.5px solid var(--ink2); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.hl td { background: #eef5fd; font-weight: 600; }
+figure { margin: 10px 0 14px; break-inside: avoid; }
+figure img { width: 100%; border: 1px solid var(--line); border-radius: 4px; display: block; }
+figcaption { font-size: 9pt; color: var(--ink2); margin-top: 4px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 16px; break-inside: avoid; }
+.kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.kpi .v { font-size: 22pt; font-weight: 650; letter-spacing: -.02em; line-height: 1.1; }
+.kpi .l { font-size: 9pt; color: var(--ink2); }
+.kpi.g .v { color: var(--good); } .kpi.b .v { color: var(--bad); } .kpi.u .v { color: var(--blue); }
+.box { border-left: 3px solid var(--blue); background: var(--soft); padding: 8px 12px; margin: 10px 0; break-inside: avoid; }
+.box b:first-child { display: block; margin-bottom: 2px; }
+code { font: 9pt Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+pre { font: 8.5pt/1.45 Consolas, "Cascadia Mono", monospace; background: var(--soft); padding: 8px 10px; border-radius: 4px; overflow-x: auto; break-inside: avoid; white-space: pre-wrap; }
+footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink3); font-size: 8.5pt; }
+ul { list-style: none; padding-left: 16px; }
+ul > li { position: relative; }
+ul > li::before { content: ""; position: absolute; left: -12px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--ink2); }
+.ci { color: var(--ink3); font-size: 7.5pt; font-weight: 400; white-space: nowrap; }
+.tag { font-size: 7pt; font-weight: 400; color: var(--ink3); border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; white-space: nowrap; }
+table.exp { font-size: 8.5pt; }
+table.exp th, table.exp td { padding: 4px 4px; }
+.v { font-size: 8.5pt; font-weight: 600; white-space: nowrap; }
+.v-peor { color: var(--bad); } .v-mejor { color: var(--good); } .v-sin { color: var(--ink2); font-weight: 400; } .v-producción { color: var(--blue); }
+.nota { font-size: 8.5pt; color: var(--ink2); }
+</style></head>
+<body>
+
+<span class="audience">Reporte de experimentos · equipo de datos e ingeniería</span>
+<h1>Experimentos de modelos<br>¿Hay algo mejor que el modelo de producción?</h1>
+<div class="meta">Documento 07 · Proyecto textile-image-defect-detector · datos al {{INC:experimentos_fecha.html}} · complementa el reporte técnico (04)</div>
+
+<p class="lead">Este reporte reúne todas las alternativas que se probaron contra el modelo en producción: otras aumentaciones, otras arquitecturas, ensambles y, en la ronda 2, ideas tomadas de proyectos similares. Todas se compararon con las mismas toallas de validación. <b>Ninguna supera con claridad al modelo actual, así que producción no cambia.</b></p>
+
+{{INC:experimentos_resumen.html}}
+
+<h2>1. Método de comparación</h2>
+<ul>
+  <li><b>Solo validación.</b> Las decisiones se toman con las 230 toallas de validación. El conjunto de prueba (231 toallas) se reserva para evaluar <i>una sola vez</i> la variante ganadora. Como ninguna alternativa ganó, estos experimentos no usaron el test, y sus cifras en el reporte técnico siguen siendo una estimación honesta.</li>
+  <li><b>La misma decisión que en producción.</b> Cada toalla se analiza en recortes de 512 px. Su score es el promedio de los 2 recortes más sospechosos (<code>top2</code>), y se calibra por cámara contra las toallas OK de esa cámara.</li>
+  <li><b>Métricas.</b> El AUC por toalla, con intervalo bootstrap del 95 %, mide qué tan bien separa el modelo las NO OK de las OK, sin depender del umbral. Las falsas alarmas al 95 % indican cuántas toallas OK se mandan a revisión cuando el umbral atrapa el 95 % de las NO OK. Ambas se reportan para todas las cámaras y para la de producción (2025-06).</li>
+  <li><b>Comparación pareada.</b> El ΔAUC contra producción se calcula remuestreando las mismas toallas para ambos modelos. Así se obtiene un intervalo de la diferencia, en vez de comparar dos intervalos sueltos.</li>
+</ul>
+
+<h2>2. Resultados</h2>
+{{INC:experimentos_tabla.html}}
+
+<figure><img src="{{IMG:exp_delta_auc.png}}" alt="Diferencia de AUC de cada alternativa contra producción, con intervalos del 95 %"><figcaption>Figura 1. Diferencia de AUC por toalla de cada alternativa contra el modelo de producción (línea en 0). Si el intervalo cruza el 0, la diferencia no está demostrada.</figcaption></figure>
+
+<h2>3. Ronda 2: ideas de proyectos similares</h2>
+<p>Se revisaron 13 enlaces de proyectos y artículos sobre defectos en tela: ZJU-Leaper, AC-YOLOv5, RefineDet, transferencia con GoogLeNet/ResNet50, notebooks de Kaggle y los sistemas industriales WiseEye y easyodm. De ahí se eligieron dos ideas que se pueden probar con las fotos de Galia.</p>
+<h3>3.1 Segmentador supervisado por cajas (idea de ZJU-Leaper)</h3>
+<p>En el benchmark ZJU-Leaper, entrenar con la ubicación del defecto (cajas o máscaras) supera claramente a entrenar solo con la etiqueta «tiene defecto». Para probarlo, la EfficientNet-B0 se convirtió en un segmentador. Un decodificador tipo FPN predice un mapa de defecto de 128×128 por recorte, y el interior de las cajas anotadas sirve como máscara de entrenamiento. El score del recorte es el promedio del 0.5 % de píxeles más altos. Se usaron la misma receta, las mismas épocas y la misma semilla que en el 2.º B0, para que solo cambie la supervisión (<code>src/galia/segnet.py</code>, <code>scripts/06c_train_tile_segmenter.py</code>).</p>
+<p><b>Resultado:</b> es el modelo que mejor localiza los defectos dentro de un recorte (mejor AP de todas las curvas, figura 2), pero por toalla es el peor de la ronda. En las toallas OK casi siempre hay algún recorte con un punto «caliente» (una pelusa, un borde, la etiqueta), y como la toalla toma su score de los recortes más sospechosos, suben las falsas alarmas. Con las cajas como máscara aproximada, la idea no funciona en las toallas de Galia.</p>
+<h3>3.2 ResNet50 por transferencia</h3>
+<p>Es la red con mejores resultados en el artículo de Cheung &amp; Yang (2023), y se entrenó con la receta del clasificador. Sola no mejora a la B0. Combinada con la B0 base da el <b>mayor AUC global</b> de todos los experimentos, pero la ganancia está dentro del ruido. Además, en la cámara de producción tiene un AUC algo menor y más falsas alarmas al 95 % de detección. En la línea, ese costo pesa más que una ganancia no demostrada.</p>
+
+<figure><img src="{{IMG:exp_curvas_entrenamiento.png}}" alt="AP por recorte en validación por época"><figcaption>Figura 2. AP por recorte en validación durante el entrenamiento, con la misma receta para todos los modelos. El punto marca la época que se guardó. Un mejor AP por recorte no implica un mejor resultado por toalla (compárese con la tabla de la sección 2).</figcaption></figure>
+{{INC:experimentos_curvas.html}}
+
+<h3>3.3 Lo que no se probó y por qué</h3>
+<ul>
+  <li><b>AC-YOLOv5 y RefineDet.</b> Son detectores de cajas. El YOLO por recortes de este proyecto ya quedó muy por debajo del clasificador (reporte 04, §4.2). RefineDet, además, usa una versión antigua de PyTorch y tiene licencia GPL-3.0.</li>
+  <li><b>Conjuntos de datos externos (ZJU-Leaper, Kaggle).</b> Son telas planas fotografiadas de cerca, muy distintas de una toalla completa, y ZJU-Leaper no declara licencia.</li>
+  <li><b>Sistemas industriales (WiseEye, easyodm).</b> Su ventaja principal está en la captura: iluminación controlada y una cámara sincronizada con el avance. Eso ya está en la propuesta de estación de captura (documento 06).</li>
+</ul>
+
+<h2>4. Conclusión</h2>
+<div class="box"><b>Producción se queda como está: 2× EfficientNet-B0 (B0 base + 2.º B0, semilla 7).</b>Ninguna alternativa mejora a la vez el total y la cámara de producción sin subir las falsas alarmas. La mejora más probable ya no está en la arquitectura, sino en los datos: fotos de la estación de captura, con iluminación fija y con toallas OK y NO OK de la misma sesión. Cuando existan, conviene reentrenar y repetir esta comparación.</div>
+
+<h2>5. Cómo regenerar este reporte</h2>
+<pre># 1. evaluar un experimento nuevo en validación (GPU, entorno galia_v2)
+python scripts/09_experiment_val.py --name mi_exp --weights models/a.pt models/b.pt
+# 2. describirlo en docs/reportes/fuente/experimentos.json (nombre, ronda, tipo)
+# 3. tablas, figuras y PDF (no hace falta GPU ni modelos)
+make experimentos     # o: python scripts/build_experimentos.py  y luego  python scripts/build_reportes.py experimentos</pre>
+<p>Las tablas, las figuras y los veredictos se calculan solos. Los textos de las secciones 3 y 4 están en <code>docs/reportes/fuente/reporte_experimentos.html</code>; si cambian las conclusiones, se editan a mano.</p>
+
+<footer>Datos: reports/experiments/*_val.csv (scores por toalla de validación) y runs/*/history.json. La tabla completa en CSV está en reports/experiments/comparacion_produccion.csv.</footer>
+</body></html>

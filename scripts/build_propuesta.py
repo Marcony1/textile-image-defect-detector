@@ -1,4 +1,4 @@
-"""Genera docs/propuesta_estacion_captura_v<versión>.pdf a partir de su HTML (Microsoft Edge en modo headless).
+"""Genera docs/06_propuesta_estacion_captura_v<versión>.pdf (número: scripts/documentos.py) a partir de su HTML (Microsoft Edge en modo headless).
 
     python scripts/build_propuesta.py
 """
@@ -7,9 +7,14 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "scripts"))
+from documentos import nombre_archivo  # noqa: E402
+
 SRC = ROOT / "docs" / "propuesta_estacion" / "propuesta_estacion_captura.html"
 DOC_VERSION = "1.1"  # súbala cuando cambie el contenido (y anote el cambio en el recuadro de la portada)
-PDF = ROOT / "docs" / f"propuesta_estacion_captura_v{DOC_VERSION}.pdf"
+PDF = ROOT / "docs" / f"{nombre_archivo('propuesta')}_v{DOC_VERSION}.pdf"
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 
 
@@ -31,7 +36,7 @@ def main():
         time.sleep(1)
     if not PDF.exists() or PDF.stat().st_size < 10_000:
         raise SystemExit("Edge no generó el PDF; no se borró ninguna versión anterior.")
-    for old in (ROOT / "docs").glob("propuesta_estacion_captura*.pdf"):  # solo la versión vigente
+    for old in (ROOT / "docs").glob("*propuesta_estacion_captura*.pdf"):  # solo la versión vigente
         if old != PDF:
             old.unlink()
     print(f"{PDF} ({PDF.stat().st_size // 1024} KB)")

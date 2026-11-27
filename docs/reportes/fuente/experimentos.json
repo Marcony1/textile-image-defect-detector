@@ -1,0 +1,28 @@
+{
+  "_ayuda": "Descripción de cada experimento de reports/experiments/<nombre>_val.csv. Un experimento nuevo sin entrada aquí aparece en el reporte como «sin descripción». 'produccion': true marca el modelo en uso (referencia de las comparaciones). 'curva': carpeta de runs/ con history.json para la figura de entrenamiento.",
+  "produccion": "ens_hn_s7",
+  "rondas": {
+    "1": "Ronda 1 (noviembre 2026): aumentación, arquitectura y ensambles",
+    "2": "Ronda 2 (26 nov 2026): ideas de proyectos similares (ZJU-Leaper, transferencia con ResNet50)"
+  },
+  "experimentos": {
+    "b0_hn":          {"ronda": 1, "nombre": "B0 base (v1 + negativos difíciles)", "tipo": "modelo"},
+    "b0_hn_tta":      {"ronda": 1, "nombre": "B0 base + TTA (volteos H/V)", "tipo": "modelo"},
+    "b0_basic_s7":    {"ronda": 1, "nombre": "2.º B0, semilla 7 (receta básica)", "tipo": "modelo", "curva": "tile_cls_efficientnet_b0_basic_s7"},
+    "b0_strong":      {"ronda": 1, "nombre": "B0 con aumentación fuerte", "tipo": "modelo"},
+    "b0_strong_cp":   {"ronda": 1, "nombre": "B0 aumentación fuerte + copiar-pegar defectos", "tipo": "modelo"},
+    "cnxt_basic":     {"ronda": 1, "nombre": "ConvNeXt-Tiny", "tipo": "modelo", "curva": "tile_cls_convnext_tiny_basic"},
+    "ens_hn_s7":      {"ronda": 1, "nombre": "B0 base + 2.º B0 (semilla 7)", "tipo": "ensamble"},
+    "ens_hn_strong":  {"ronda": 1, "nombre": "B0 base + B0 aumentación fuerte", "tipo": "ensamble"},
+    "ens_hn_cp":      {"ronda": 1, "nombre": "B0 base + B0 copiar-pegar", "tipo": "ensamble"},
+    "ens_hn_cnxt":    {"ronda": 1, "nombre": "B0 base + ConvNeXt-T", "tipo": "ensamble"},
+    "ens_hn_s7_cnxt": {"ronda": 1, "nombre": "B0 base + 2.º B0 + ConvNeXt-T", "tipo": "ensamble"},
+    "ens_all3":       {"ronda": 1, "nombre": "B0 base + aumentación fuerte + copiar-pegar", "tipo": "ensamble"},
+    "seg_b0_s7":      {"ronda": 2, "nombre": "Segmentador B0 supervisado por cajas", "tipo": "modelo", "curva": "tile_seg_efficientnet_b0_basic_s7"},
+    "r50_s7":         {"ronda": 2, "nombre": "ResNet50 (receta básica, semilla 7)", "tipo": "modelo", "curva": "tile_cls_resnet50_basic_s7"},
+    "ens_hn_r50":     {"ronda": 2, "nombre": "B0 base + ResNet50", "tipo": "ensamble"},
+    "ens_hn_seg":     {"ronda": 2, "nombre": "B0 base + segmentador", "tipo": "ensamble"},
+    "ens_hn_s7_seg":  {"ronda": 2, "nombre": "Producción + segmentador", "tipo": "ensamble"},
+    "ens_hn_seg_r50": {"ronda": 2, "nombre": "B0 base + segmentador + ResNet50", "tipo": "ensamble"}
+  }
+}

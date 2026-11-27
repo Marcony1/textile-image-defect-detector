@@ -153,16 +153,25 @@ python scripts/serve.py --inbox D:/camara/salida --archive D:/galia/archivo --li
 - Para probarlo sin la máquina: `python scripts/simulate_line.py --every 4`, que copia fotos de test a la carpeta de entrada.
 - ⚠️ El servicio no tiene usuarios ni contraseñas. Úsalo solo en la red interna.
 
-Los reportes técnico y ejecutivo, con la propuesta de mejora, están en [`docs/reportes/`](docs/reportes/).
+Los documentos del proyecto están numerados (la numeración vive en `scripts/documentos.py`):
+
+| N.º | Documento | Archivo |
+|---|---|---|
+| 01–03 | Reportes de los notebooks v1 | `docs/0X_textile_defect_training_*.pdf` |
+| 04 | Reporte técnico (pipeline v2) | [`docs/reportes/04_reporte_tecnico.pdf`](docs/reportes/04_reporte_tecnico.pdf) |
+| 05 | Reporte ejecutivo | [`docs/reportes/05_reporte_ejecutivo.pdf`](docs/reportes/05_reporte_ejecutivo.pdf) |
+| 06 | Propuesta de estación de captura | `docs/06_propuesta_estacion_captura_v<versión>.pdf` |
+| 07 | Experimentos de modelos (alternativas contra producción) | [`docs/reportes/07_reporte_experimentos.pdf`](docs/reportes/07_reporte_experimentos.pdf) |
 
 ### Paquete para la prueba en planta
 
-**Versiones:** la versión del paquete y su historial de cambios viven en `src/galia/service/static/cambios.json` (la entrada más reciente va primero). De ahí salen el nombre del zip (`dist/Inspector_Toallas_v<versión>.zip`), la versión en el tablero (botón *Novedades*), la portada de `LEEME.pdf` y su sección 14. Para publicar una versión nueva: agregar una entrada al inicio de `cambios.json` y correr `python scripts/build_delivery.py`. La propuesta de estación de captura tiene su propia versión (`DOC_VERSION` en `scripts/build_propuesta.py` → `docs/propuesta_estacion_captura_v<versión>.pdf`).
+**Versiones:** la versión del paquete y su historial de cambios viven en `src/galia/service/static/cambios.json` (la entrada más reciente va primero). De ahí salen el nombre del zip (`dist/Inspector_Toallas_v<versión>.zip`), la versión en el tablero (botón *Novedades*), la portada de `LEEME.pdf` y su sección 14. Para publicar una versión nueva: agregar una entrada al inicio de `cambios.json` y correr `python scripts/build_delivery.py`. La propuesta de estación de captura tiene su propia versión (`DOC_VERSION` en `scripts/build_propuesta.py` → `docs/06_propuesta_estacion_captura_v<versión>.pdf`).
 
 **Mantenimiento sin asistente de IA.** Un solo comando regenera todo lo derivado:
 
 ```bash
-make todo                      # diagramas + curva + reportes + propuesta + zip   (sin make: python scripts/actualizar.py)
+make todo                      # diagramas + curva + experimentos + reportes + propuesta + zip   (sin make: python scripts/actualizar.py)
+make experimentos              # solo el reporte 07 (tablas y figuras desde reports/experiments/)
 make zip                       # solo el paquete
 make version V=1.4.1 T="Título" C="Cambio 1|Cambio 2"   # registra la versión (o: python scripts/nueva_version.py ...)
 ```
@@ -175,7 +184,8 @@ Flujo para entregar una versión: editar código o textos → `make version …`
 |---|---|---|
 | `LEEME.pdf` del paquete | `entrega/LEEME.html` + `entrega/guia/*.png` | `python scripts/build_delivery.py` |
 | Propuesta de estación de captura | `docs/propuesta_estacion/propuesta_estacion_captura.html` | `python scripts/build_propuesta.py` |
-| Reportes técnico y ejecutivo | `docs/reportes/fuente/*.html` + `fuente/img/*.png` | `python scripts/build_reportes.py` |
+| 04 técnico, 05 ejecutivo | `docs/reportes/fuente/*.html` + `fuente/img/*.png` | `python scripts/build_reportes.py` |
+| 07 experimentos | `docs/reportes/fuente/reporte_experimentos.html` + `fuente/experimentos.json` (tablas: `reports/experiments/*_val.csv`) | `make experimentos` |
 | Diagramas de la red | `docs/diagramas/generar_diagramas.py` | `python docs/diagramas/generar_diagramas.py` (luego `build_reportes.py`) |
 
 Los PDF se imprimen con Microsoft Edge en modo headless.
@@ -224,7 +234,9 @@ scripts/04-08       construcción del dataset, entrenamiento y evaluación
 scripts/predict.py  inferencia por lotes
 scripts/serve.py    servicio de línea + tablero en vivo (src/galia/service/)
 scripts/build_delivery.py  arma el paquete para la empresa (dist/Inspector_Toallas_v<versión>.zip)
-scripts/build_reportes.py  reportes técnico y ejecutivo (HTML + PDF) desde docs/reportes/fuente/
+scripts/build_reportes.py  reportes 04, 05 y 07 (HTML + PDF) desde docs/reportes/fuente/
+scripts/build_experimentos.py  tablas y figuras del reporte 07 (sin GPU)
+scripts/06c_train_tile_segmenter.py  experimento: segmentador supervisado por cajas (no se usa en producción)
 entrega/            plantillas del paquete: instaladores, configuracion.ini, LEEME, captura con Raspberry Pi
 notebooks/05-09     análisis y visualizaciones del pipeline v2
 notebooks/01-04     modelos históricos (v1), se conservan como referencia
